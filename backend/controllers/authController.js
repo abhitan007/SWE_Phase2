@@ -53,6 +53,17 @@ exports.getMe = async (req, res) => {
   }
 };
 
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+    const avatarPath = '/api/uploads/avatars/' + req.file.filename;
+    const user = await User.findByIdAndUpdate(req.user.userId, { avatar: avatarPath }, { new: true }).select('-password');
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to upload avatar' });
+  }
+};
+
 exports.forgotPassword = async (req, res) => {
   try {
     const { userId, email } = req.body;

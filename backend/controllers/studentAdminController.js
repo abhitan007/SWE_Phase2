@@ -13,14 +13,22 @@ exports.getAllStudents = async (req, res) => {
 };
 
 exports.createStudent = async (req, res) => {
+  let user = null;
   try {
     const { userId, name, email, department, password, rollNumber, program, batch, currentSemester } = req.body;
-    const user = await User.create({ userId, name, email, department, password, role: 'student' });
-    const profile = await StudentProfile.create({ user: user._id, rollNumber, program, batch, currentSemester });
+    user = await User.create({ userId, name, email, department, password, role: 'student' });
+    const profile = await StudentProfile.create({
+      user: user._id,
+      rollNumber: rollNumber || userId,
+      program: program || undefined,
+      batch,
+      currentSemester: currentSemester || 1
+    });
     res.status(201).json({ user: { _id: user._id, userId, name, email }, profile });
   } catch (err) {
+    if (user) await User.findByIdAndDelete(user._id).catch(() => {});
     if (err.code === 11000) return res.status(409).json({ error: 'User ID, email, or roll number already exists' });
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 };
 

@@ -9,7 +9,8 @@ const assignmentSchema = new mongoose.Schema({
   maxScore: { type: Number, default: 100 },
   isPublished: { type: Boolean, default: false },
   allowedFileTypes: [{ type: String }],
-  attachments: [{ type: String }] // file paths
+  attachments: [{ type: String }],
+  attachmentFileName: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Assignment', assignmentSchema);

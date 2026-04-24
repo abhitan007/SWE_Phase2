@@ -45,14 +45,16 @@ exports.enrollInCourse = async (req, res) => {
 
 exports.getMyEnrollments = async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ student: req.user.userId, status: 'enrolled' })
-      .populate({
-        path: 'courseOffering',
-        populate: [
-          { path: 'course', select: 'code name credits description' },
-          { path: 'faculty', select: 'name' }
-        ]
-      });
+    const enrollments = await Enrollment.find({
+      student: req.user.userId,
+      status: { $in: ['enrolled', 'completed'] }
+    }).populate({
+      path: 'courseOffering',
+      populate: [
+        { path: 'course', select: 'code name credits description' },
+        { path: 'faculty', select: 'name' }
+      ]
+    });
     res.json(enrollments);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

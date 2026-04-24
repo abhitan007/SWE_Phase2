@@ -1,18 +1,31 @@
 const Message = require('../models/Message');
+const User = require('../models/User');
 
 exports.send = async (req, res) => {
   try {
     const { recipient, subject, body, threadId } = req.body;
+
+    if (!recipient || !subject || !body) {
+      return res.status(400).json({ error: 'Recipient User ID, subject and body are required.' });
+    }
+
+    // Resolve recipient by their userId string (e.g. "230101120") -> MongoDB _id
+    const recipientUser = await User.findOne({ userId: recipient }).select('_id');
+    if (!recipientUser) {
+      return res.status(404).json({ error: `No user found with User ID "${recipient}"` });
+    }
+
     const message = await Message.create({
       sender: req.user.userId,
-      recipient,
+      recipient: recipientUser._id,
       subject,
       body,
       threadId
     });
     res.status(201).json(message);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send message' });
+    console.error('Send message error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send message' });
   }
 };
 

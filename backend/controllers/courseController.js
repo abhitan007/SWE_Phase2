@@ -1,5 +1,7 @@
 const Course = require('../models/Course');
 const CourseOffering = require('../models/CourseOffering');
+const Enrollment = require('../models/Enrollment');
+const User = require('../models/User');
 
 exports.getCourses = async (req, res) => {
   try {
@@ -35,11 +37,44 @@ exports.updateCourse = async (req, res) => {
 
 exports.createOffering = async (req, res) => {
   try {
-    const { faculty, semester, year, capacity } = req.body;
-    const offering = await CourseOffering.create({ course: req.params.id, faculty, semester, year, capacity });
-    res.status(201).json(offering);
+    const { facultyUserId, semester, year, capacity } = req.body;
+    if (!facultyUserId || !semester || !year) {
+      return res.status(400).json({ error: 'facultyUserId, semester and year are required' });
+    }
+
+    const facultyUser = await User.findOne({ userId: facultyUserId, role: 'faculty' });
+    if (!facultyUser) return res.status(404).json({ error: `Faculty ID "${facultyUserId}" not found` });
+
+    const course = await Course.findById(req.params.id).populate('department', 'name code');
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+
+    if (course.department && facultyUser.department) {
+      const deptCode = (course.department.code || '').toLowerCase();
+      const deptName = (course.department.name || '').toLowerCase();
+      const facultyDept = facultyUser.department.toLowerCase();
+      if (facultyDept !== deptCode && facultyDept !== deptName) {
+        return res.status(400).json({
+          error: `Faculty department "${facultyUser.department}" does not match course department "${course.department.code || course.department.name}"`
+        });
+      }
+    }
+
+    const offering = await CourseOffering.create({
+      course: req.params.id,
+      faculty: facultyUser._id,
+      semester,
+      year: parseInt(year),
+      capacity: parseInt(capacity) || 60,
+      isOpen: true
+    });
+
+    const populated = await offering.populate([
+      { path: 'course', select: 'code name credits' },
+      { path: 'faculty', select: 'name userId' }
+    ]);
+    res.status(201).json(populated);
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 };
 
@@ -65,7 +100,16 @@ exports.getAvailableCourses = async (req, res) => {
         ]
       })
       .populate('faculty', 'name');
-    res.json(offerings.filter(o => o.course));
+
+    const active = offerings.filter(o => o.course);
+
+    if (req.user?.role === 'student') {
+      const existing = await Enrollment.find({ student: req.user.userId });
+      const enrolledIds = new Set(existing.map(e => e.courseOffering.toString()));
+      return res.json(active.filter(o => !enrolledIds.has(o._id.toString())));
+    }
+
+    res.json(active);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

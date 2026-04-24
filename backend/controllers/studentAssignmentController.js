@@ -57,7 +57,7 @@ exports.getMySubmissions = async (req, res) => {
 
 exports.getMyAttendance = async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ student: req.user.userId, status: 'enrolled' });
+    const enrollments = await Enrollment.find({ student: req.user.userId, status: { $in: ['enrolled', 'completed'] } });
     const courseOfferingIds = enrollments.map(e => e.courseOffering);
 
     const sessions = await AttendanceSession.find({

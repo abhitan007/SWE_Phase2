@@ -15,14 +15,20 @@ exports.getAllFaculty = async (req, res) => {
 };
 
 exports.createFaculty = async (req, res) => {
+  let user = null;
   try {
     const { userId, name, email, password, employeeId, designation, department } = req.body;
-    const user = await User.create({ userId, name, email, password, role: 'faculty', department });
-    const profile = await FacultyProfile.create({ user: user._id, employeeId, designation, department });
+    user = await User.create({ userId, name, email, password, role: 'faculty', department });
+    const profile = await FacultyProfile.create({
+      user: user._id,
+      employeeId: employeeId || userId,
+      designation: designation || undefined
+    });
     res.status(201).json({ user: { _id: user._id, userId, name, email }, profile });
   } catch (err) {
+    if (user) await User.findByIdAndDelete(user._id).catch(() => {});
     if (err.code === 11000) return res.status(409).json({ error: 'User ID, email, or employee ID already exists' });
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: err.message || 'Server error' });
   }
 };
 

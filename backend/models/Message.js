@@ -11,11 +11,10 @@ const messageSchema = new mongoose.Schema({
   deletedByRecipient: { type: Boolean, default: false }
 }, { timestamps: true });
 
-messageSchema.pre('save', function(next) {
+messageSchema.pre('save', async function() {
   if (!this.threadId) {
     this.threadId = this._id.toString();
   }
-  next();
 });
 
 module.exports = mongoose.model('Message', messageSchema);

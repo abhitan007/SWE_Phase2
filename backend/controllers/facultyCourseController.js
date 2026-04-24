@@ -1,8 +1,23 @@
+const path = require('path');
+const fs = require('fs');
 const Assignment = require('../models/Assignment');
 const Submission = require('../models/Submission');
 const AttendanceSession = require('../models/AttendanceSession');
 const Enrollment = require('../models/Enrollment');
 const CourseOffering = require('../models/CourseOffering');
+
+// ─── My Courses ───
+
+exports.getMyCourseOfferings = async (req, res) => {
+  try {
+    const offerings = await CourseOffering.find({ faculty: req.user.userId })
+      .populate({ path: 'course', select: 'code name credits description' })
+      .sort({ year: -1, semester: 1 });
+    res.json(offerings);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch course offerings' });
+  }
+};
 
 // ─── Assignments ───
 
@@ -11,13 +26,15 @@ exports.createAssignment = async (req, res) => {
     const { courseOfferingId } = req.params;
     const offering = await CourseOffering.findById(courseOfferingId);
     if (!offering || offering.faculty.toString() !== req.user.userId) {
+      if (req.file) fs.unlinkSync(req.file.path).catch?.(() => {});
       return res.status(403).json({ error: 'Not authorized for this course' });
     }
-    const assignment = await Assignment.create({
-      ...req.body,
-      courseOffering: courseOfferingId,
-      faculty: req.user.userId
-    });
+    const data = { ...req.body, courseOffering: courseOfferingId, faculty: req.user.userId };
+    if (req.file) {
+      data.attachments = [req.file.filename];
+      data.attachmentFileName = req.file.originalname;
+    }
+    const assignment = await Assignment.create(data);
     res.status(201).json(assignment);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create assignment' });
@@ -36,15 +53,35 @@ exports.getAssignments = async (req, res) => {
 
 exports.updateAssignment = async (req, res) => {
   try {
+    const update = { $set: { ...req.body } };
+    if (req.file) {
+      update.$set.attachments = [req.file.filename];
+      update.$set.attachmentFileName = req.file.originalname;
+    }
     const assignment = await Assignment.findOneAndUpdate(
       { _id: req.params.assignmentId, faculty: req.user.userId },
-      { $set: req.body },
+      update,
       { new: true }
     );
     if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
     res.json(assignment);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update assignment' });
+  }
+};
+
+exports.downloadAssignmentAttachment = async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment || !assignment.attachments?.length) {
+      return res.status(404).json({ error: 'No attachment found' });
+    }
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    const filePath = path.join(uploadsDir, assignment.attachments[0]);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found on server' });
+    res.download(filePath, assignment.attachmentFileName || assignment.attachments[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to download attachment' });
   }
 };
 
