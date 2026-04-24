@@ -5,7 +5,7 @@ const resourceSchema = new mongoose.Schema({
   description: { type: String },
   courseOffering: { type: mongoose.Schema.Types.ObjectId, ref: 'CourseOffering', required: true },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  filePath: { type: String, required: true },
+  fileData: { type: String, required: true }, // base64 data URL
   fileName: { type: String, required: true },
   fileSize: { type: Number },
   category: { type: String, enum: ['lecture', 'tutorial', 'reference', 'other'], default: 'other' }

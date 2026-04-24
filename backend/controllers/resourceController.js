@@ -1,5 +1,5 @@
 const Resource = require('../models/Resource');
-const path = require('path');
+const { toDataUrl, sendDataUrl } = require('../utils/fileHelper');
 
 exports.upload = async (req, res) => {
   try {
@@ -9,12 +9,14 @@ exports.upload = async (req, res) => {
       description: req.body.description,
       courseOffering: req.params.courseOfferingId,
       uploadedBy: req.user.userId,
-      filePath: req.file.path,
+      fileData: toDataUrl(req.file),
       fileName: req.file.originalname,
       fileSize: req.file.size,
       category: req.body.category || 'other'
     });
-    res.status(201).json(resource);
+    const out = resource.toObject();
+    delete out.fileData;
+    res.status(201).json(out);
   } catch (err) {
     res.status(500).json({ error: 'Failed to upload resource' });
   }
@@ -23,6 +25,7 @@ exports.upload = async (req, res) => {
 exports.getByCourse = async (req, res) => {
   try {
     const resources = await Resource.find({ courseOffering: req.params.courseOfferingId })
+      .select('-fileData')
       .populate('uploadedBy', 'name')
       .sort({ createdAt: -1 });
     res.json(resources);
@@ -34,8 +37,8 @@ exports.getByCourse = async (req, res) => {
 exports.download = async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
-    if (!resource) return res.status(404).json({ error: 'Resource not found' });
-    res.download(path.resolve(resource.filePath), resource.fileName);
+    if (!resource?.fileData) return res.status(404).json({ error: 'Resource not found' });
+    sendDataUrl(res, resource.fileData, resource.fileName);
   } catch (err) {
     res.status(500).json({ error: 'Failed to download resource' });
   }

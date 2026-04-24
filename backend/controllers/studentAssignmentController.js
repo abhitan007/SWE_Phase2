@@ -2,6 +2,7 @@ const Assignment = require('../models/Assignment');
 const Submission = require('../models/Submission');
 const Enrollment = require('../models/Enrollment');
 const AttendanceSession = require('../models/AttendanceSession');
+const { toDataUrl, sendDataUrl } = require('../utils/fileHelper');
 
 // ─── Student Assignments ───
 
@@ -12,7 +13,8 @@ exports.getMyAssignments = async (req, res) => {
     const assignments = await Assignment.find({
       courseOffering: { $in: courseOfferingIds },
       isPublished: true
-    }).populate({ path: 'courseOffering', populate: { path: 'course', select: 'code name' } })
+    }).select('-attachmentData')
+      .populate({ path: 'courseOffering', populate: { path: 'course', select: 'code name' } })
       .sort({ deadline: 1 });
     res.json(assignments);
   } catch (err) {
@@ -30,14 +32,16 @@ exports.submitAssignment = async (req, res) => {
     const submission = await Submission.findOneAndUpdate(
       { assignment: req.params.assignmentId, student: req.user.userId },
       {
-        filePath: req.file.path,
+        fileData: toDataUrl(req.file),
         fileName: req.file.originalname,
         submittedAt: new Date(),
         isLate
       },
       { new: true, upsert: true }
     );
-    res.status(201).json(submission);
+    const out = submission.toObject();
+    delete out.fileData;
+    res.status(201).json(out);
   } catch (err) {
     res.status(500).json({ error: 'Failed to submit assignment' });
   }
@@ -46,10 +50,24 @@ exports.submitAssignment = async (req, res) => {
 exports.getMySubmissions = async (req, res) => {
   try {
     const submissions = await Submission.find({ student: req.user.userId })
+      .select('-fileData')
       .populate('assignment', 'title maxScore deadline');
     res.json(submissions);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+};
+
+exports.downloadMySubmission = async (req, res) => {
+  try {
+    const submission = await Submission.findOne({
+      _id: req.params.submissionId,
+      student: req.user.userId
+    });
+    if (!submission?.fileData) return res.status(404).json({ error: 'No file found' });
+    sendDataUrl(res, submission.fileData, submission.fileName || 'submission');
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to download submission' });
   }
 };
 
@@ -64,7 +82,6 @@ exports.getMyAttendance = async (req, res) => {
       courseOffering: { $in: courseOfferingIds }
     }).populate({ path: 'courseOffering', populate: { path: 'course', select: 'code name' } });
 
-    // Build per-course summary
     const summaryMap = {};
     for (const session of sessions) {
       const coId = session.courseOffering._id.toString();
@@ -73,9 +90,7 @@ exports.getMyAttendance = async (req, res) => {
       }
       summaryMap[coId].total++;
       const record = session.records.find(r => r.student.toString() === req.user.userId);
-      if (record && record.status === 'present') {
-        summaryMap[coId].attended++;
-      }
+      if (record && record.status === 'present') summaryMap[coId].attended++;
     }
     const summary = Object.values(summaryMap).map(s => ({
       ...s,

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const submissionSchema = new mongoose.Schema({
   assignment: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', required: true },
   student: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  filePath: { type: String, required: true },
+  fileData: { type: String, required: true }, // base64 data URL
   fileName: { type: String },
   submittedAt: { type: Date, default: Date.now },
   isLate: { type: Boolean, default: false },

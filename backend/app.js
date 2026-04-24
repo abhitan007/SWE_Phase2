@@ -46,6 +46,7 @@ const studentAttendanceRoutes = require('./routes/studentAttendance');
 const announcementRoutes = require('./routes/announcements');
 const resourceRoutes = require('./routes/resources');
 const messageRoutes = require('./routes/messages');
+const postRoutes = require('./routes/posts');
 
 // Module 6 — Hostel & Welfare Services
 const leaveRoutes = require('./routes/leaves');
@@ -91,6 +92,7 @@ app.use('/api/student/attendance', studentAttendanceRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/posts', postRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
 // ─── Module 6 mounts ───

@@ -16,6 +16,7 @@ router.get('/assignments/:assignmentId/attachment', authenticate, authorizeRoles
 
 // Submission Review
 router.get('/assignments/:assignmentId/submissions', authenticate, authorizeRoles('faculty'), ctrl.getSubmissions);
+router.get('/submissions/:submissionId/download', authenticate, authorizeRoles('faculty'), ctrl.downloadSubmission);
 router.patch('/submissions/:submissionId/grade', authenticate, authorizeRoles('faculty'), ctrl.gradeSubmission);
 
 // Attendance

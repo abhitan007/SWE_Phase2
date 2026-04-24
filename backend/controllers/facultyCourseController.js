@@ -1,17 +1,14 @@
-const path = require('path');
-const fs = require('fs');
 const Assignment = require('../models/Assignment');
 const Submission = require('../models/Submission');
 const AttendanceSession = require('../models/AttendanceSession');
 const Enrollment = require('../models/Enrollment');
 const CourseOffering = require('../models/CourseOffering');
+const { toDataUrl, sendDataUrl } = require('../utils/fileHelper');
 
 // ─── My Courses ───
 
 exports.getMyCourseOfferings = async (req, res) => {
   try {
-    // Match offerings where user is the primary faculty OR listed in instructors[]
-    // The $or handles both old offerings (only faculty set) and new ones (instructors array)
     const offerings = await CourseOffering.find({
       $or: [
         { faculty: req.user.userId },
@@ -37,17 +34,18 @@ exports.createAssignment = async (req, res) => {
     const isAuthorized = offering &&
       (offering.faculty?.toString() === req.user.userId.toString() ||
        (offering.instructors || []).some(i => i.toString() === req.user.userId.toString()));
-    if (!isAuthorized) {
-      if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(403).json({ error: 'Not authorized for this course' });
-    }
+    if (!isAuthorized) return res.status(403).json({ error: 'Not authorized for this course' });
+
     const data = { ...req.body, courseOffering: courseOfferingId, faculty: req.user.userId };
     if (req.file) {
-      data.attachments = [req.file.filename];
+      data.attachmentData = toDataUrl(req.file);
       data.attachmentFileName = req.file.originalname;
     }
     const assignment = await Assignment.create(data);
-    res.status(201).json(assignment);
+    // Return without attachmentData to keep response lean
+    const out = assignment.toObject();
+    delete out.attachmentData;
+    res.status(201).json(out);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create assignment' });
   }
@@ -56,7 +54,9 @@ exports.createAssignment = async (req, res) => {
 exports.getAssignments = async (req, res) => {
   try {
     const { courseOfferingId } = req.params;
-    const assignments = await Assignment.find({ courseOffering: courseOfferingId }).sort({ createdAt: -1 });
+    const assignments = await Assignment.find({ courseOffering: courseOfferingId })
+      .select('-attachmentData')
+      .sort({ createdAt: -1 });
     res.json(assignments);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch assignments' });
@@ -66,15 +66,16 @@ exports.getAssignments = async (req, res) => {
 exports.updateAssignment = async (req, res) => {
   try {
     const update = { $set: { ...req.body } };
+    delete update.$set.attachmentData; // prevent overwriting with raw body
     if (req.file) {
-      update.$set.attachments = [req.file.filename];
+      update.$set.attachmentData = toDataUrl(req.file);
       update.$set.attachmentFileName = req.file.originalname;
     }
     const assignment = await Assignment.findOneAndUpdate(
       { _id: req.params.assignmentId, faculty: req.user.userId },
       update,
       { new: true }
-    );
+    ).select('-attachmentData');
     if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
     res.json(assignment);
   } catch (err) {
@@ -85,13 +86,8 @@ exports.updateAssignment = async (req, res) => {
 exports.downloadAssignmentAttachment = async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId);
-    if (!assignment || !assignment.attachments?.length) {
-      return res.status(404).json({ error: 'No attachment found' });
-    }
-    const uploadsDir = path.join(__dirname, '..', 'uploads');
-    const filePath = path.join(uploadsDir, assignment.attachments[0]);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found on server' });
-    res.download(filePath, assignment.attachmentFileName || assignment.attachments[0]);
+    if (!assignment?.attachmentData) return res.status(404).json({ error: 'No attachment found' });
+    sendDataUrl(res, assignment.attachmentData, assignment.attachmentFileName || 'attachment');
   } catch (err) {
     res.status(500).json({ error: 'Failed to download attachment' });
   }
@@ -103,7 +99,7 @@ exports.publishAssignment = async (req, res) => {
       { _id: req.params.assignmentId, faculty: req.user.userId },
       { isPublished: true },
       { new: true }
-    );
+    ).select('-attachmentData');
     if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
     res.json(assignment);
   } catch (err) {
@@ -131,10 +127,21 @@ exports.getSubmissions = async (req, res) => {
     const assignment = await Assignment.findOne({ _id: req.params.assignmentId, faculty: req.user.userId });
     if (!assignment) return res.status(403).json({ error: 'Not authorized for this assignment' });
     const submissions = await Submission.find({ assignment: req.params.assignmentId })
+      .select('-fileData')
       .populate('student', 'name userId email');
     res.json(submissions);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+};
+
+exports.downloadSubmission = async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.submissionId);
+    if (!submission?.fileData) return res.status(404).json({ error: 'No file found' });
+    sendDataUrl(res, submission.fileData, submission.fileName || 'submission');
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to download submission' });
   }
 };
 
@@ -144,7 +151,6 @@ exports.gradeSubmission = async (req, res) => {
     const submission = await Submission.findById(req.params.submissionId).populate('assignment');
     if (!submission) return res.status(404).json({ error: 'Submission not found' });
 
-    // Any instructor on the course offering can grade
     const offeringId = submission.assignment?.courseOffering;
     if (offeringId) {
       const allowed = await verifyCourseOwnership(offeringId, req.user.userId);
@@ -169,9 +175,8 @@ exports.gradeSubmission = async (req, res) => {
 const verifyCourseOwnership = async (courseOfferingId, facultyId) => {
   const offering = await CourseOffering.findById(courseOfferingId);
   if (!offering) return false;
-  // Allow access if user is primary faculty OR a co-instructor
-  const isInstructors = offering.instructors?.some(i => i.toString() === facultyId);
-  return isInstructors || offering.faculty?.toString() === facultyId;
+  const isInstructor = offering.instructors?.some(i => i.toString() === facultyId);
+  return isInstructor || offering.faculty?.toString() === facultyId;
 };
 
 exports.markAttendance = async (req, res) => {
@@ -228,7 +233,6 @@ exports.getRoster = async (req, res) => {
 exports.submitGrades = async (req, res) => {
   try {
     const { courseOfferingId } = req.params;
-    // All instructors have equal power — any instructor on the offering can submit grades
     if (!await verifyCourseOwnership(courseOfferingId, req.user.userId)) {
       return res.status(403).json({ error: 'Not authorized for this course' });
     }

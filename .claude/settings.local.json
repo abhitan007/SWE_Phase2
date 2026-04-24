@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node fixCourseDepartments.js)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

@@ -40,10 +40,14 @@ export default function DocumentRequests() {
     setDownloading(documentId);
     try {
       const res = await downloadTranscript(documentId);
+      // Use filename from Content-Disposition header (contains roll number)
+      const cd = res.headers?.['content-disposition'] || '';
+      const match = cd.match(/filename\*?=(?:UTF-8''|"?)([^";\n]+)/i);
+      const filename = match ? decodeURIComponent(match[1].replace(/"/g, '')) : `transcript_${documentId}.pdf`;
       const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `transcript_${documentId}.pdf`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     } catch { alert('Download failed'); }

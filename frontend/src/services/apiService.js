@@ -124,6 +124,16 @@ export const getHMCMembers = () => api.get('/admin/hmc/members');
 export const addHMCMember = (data) => api.post('/admin/hmc/members', data);
 export const removeHMCMember = (id) => api.delete(`/admin/hmc/members/${id}`);
 
+// ─── Course Feed / Posts ───
+export const getCoursePosts = (courseOfferingId) => api.get(`/posts/${courseOfferingId}`);
+export const createPost = (courseOfferingId, formData) =>
+  api.post(`/posts/${courseOfferingId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const deletePost = (postId) => api.delete(`/posts/post/${postId}`);
+export const downloadPostAttachment = (postId) => api.get(`/posts/post/${postId}/attachment`, { responseType: 'blob' });
+export const addReply = (postId, body) => api.post(`/posts/post/${postId}/replies`, { body });
+export const deleteReply = (postId, replyId) => api.delete(`/posts/post/${postId}/replies/${replyId}`);
+export const getStudentFeedOfferings = () => api.get('/posts/my-offerings');
+
 // ─── Module 7: Analytics ───
 export const getCourseAnalytics = (courseId) => api.get(`/analytics/course/${courseId}`);
 export const getProgramAnalytics = (programId) => api.get(`/analytics/program/${programId}`);

@@ -142,20 +142,22 @@ exports.getAvailableCourses = async (req, res) => {
     let studentDeptId = null;
     let studentProgramId = null;
 
+    let studentDeptStr = '';
     if (req.user?.role === 'student') {
-      const studentUser = await User.findById(req.user.userId).populate('departmentRef');
-      // Try to get program from StudentProfile
+      const studentUserForDept = await User.findById(req.user.userId);
+      studentDeptStr = (studentUserForDept?.department || '').toLowerCase().trim();
       const profile = await StudentProfile.findOne({ user: req.user.userId });
       if (profile?.program) studentProgramId = profile.program.toString();
 
-      // Find dept by matching User.department string to Department code/name
-      const dept = await Department.findOne({
-        $or: [
-          { code: { $regex: new RegExp('^' + (studentUser?.department || '') + '$', 'i') } },
-          { name: { $regex: new RegExp(studentUser?.department || '', 'i') } }
-        ]
-      });
-      if (dept) studentDeptId = dept._id.toString();
+      if (studentDeptStr) {
+        const dept = await Department.findOne({
+          $or: [
+            { code: { $regex: new RegExp('^' + studentDeptStr + '$', 'i') } },
+            { name: { $regex: new RegExp(studentDeptStr, 'i') } }
+          ]
+        });
+        if (dept) studentDeptId = dept._id.toString();
+      }
     }
 
     const offerings = await CourseOffering.find({ isOpen: true })
@@ -176,6 +178,7 @@ exports.getAvailableCourses = async (req, res) => {
 
     // Filter by eligibility for students
     if (req.user?.role === 'student') {
+
       active = active.filter(o => {
         const course = o.course;
         if (!course) return false;
@@ -183,18 +186,33 @@ exports.getAvailableCourses = async (req, res) => {
         // open_elective: everyone can see
         if (course.type === 'open_elective') return true;
 
-        // core or departmental_elective: check allowedDepartments + allowedPrograms
-        const deptIds = (course.allowedDepartments || []).map(d => d._id?.toString() || d.toString());
-        const progIds = (course.allowedPrograms || []).map(p => p._id?.toString() || p.toString());
+        const allowedDepts = course.allowedDepartments || [];
+        const allowedProgs = course.allowedPrograms || [];
 
-        // If no restrictions set, show to everyone
-        if (deptIds.length === 0 && progIds.length === 0) return true;
+        // No restrictions → show to everyone
+        if (allowedDepts.length === 0 && allowedProgs.length === 0) return true;
 
-        // Check department match
-        const deptMatch = deptIds.length === 0 || (studentDeptId && deptIds.includes(studentDeptId));
-        // Check program match
-        const progMatch = progIds.length === 0 || (studentProgramId && progIds.includes(studentProgramId));
+        // Department match: by ObjectId OR by code/name string comparison
+        const deptMatch = allowedDepts.length === 0 || allowedDepts.some(d => {
+          const id = d._id?.toString() || d.toString();
+          if (studentDeptId && id === studentDeptId) return true;
+          // fallback: compare student's dept string with dept code/name
+          const code = (d.code || '').toLowerCase();
+          const name = (d.name || '').toLowerCase();
+          return studentDeptStr && (code === studentDeptStr || name.includes(studentDeptStr) || studentDeptStr.includes(code));
+        });
 
+        // Program match: by ObjectId
+        const progMatch = allowedProgs.length === 0 || (studentProgramId && allowedProgs.some(p => {
+          const id = p._id?.toString() || p.toString();
+          return id === studentProgramId;
+        }));
+
+        // Only dept restriction → dept must match
+        if (allowedDepts.length > 0 && allowedProgs.length === 0) return deptMatch;
+        // Only prog restriction → prog must match
+        if (allowedProgs.length > 0 && allowedDepts.length === 0) return progMatch;
+        // Both restrictions → either must match
         return deptMatch || progMatch;
       });
 
