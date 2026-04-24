@@ -1,9 +1,23 @@
 import api from './authService';
 
 // ─── Module 3: Faculty Course Operations ───
-export const createAssignment = (courseOfferingId, data) => api.post(`/faculty/courses/${courseOfferingId}/assignments`, data);
+export const getMyCourseOfferings = () => api.get('/faculty/courses/my');
+export const createCourseOffering = (courseId, data) => api.post(`/courses/${courseId}/offerings`, data);
+export const createAssignment = (courseOfferingId, data, file) => {
+  const fd = new FormData();
+  Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, v); });
+  if (file) fd.append('attachment', file);
+  return api.post(`/faculty/courses/${courseOfferingId}/assignments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
 export const getAssignments = (courseOfferingId) => api.get(`/faculty/courses/${courseOfferingId}/assignments`);
-export const updateAssignment = (assignmentId, data) => api.put(`/faculty/courses/assignments/${assignmentId}`, data);
+export const updateAssignment = (assignmentId, data, file) => {
+  const fd = new FormData();
+  Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, v); });
+  if (file) fd.append('attachment', file);
+  return api.put(`/faculty/courses/assignments/${assignmentId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const downloadAssignmentAttachment = (assignmentId) => api.get(`/faculty/courses/assignments/${assignmentId}/attachment`, { responseType: 'blob' });
+export const deleteAssignment = (assignmentId) => api.delete(`/faculty/courses/assignments/${assignmentId}`);
 export const publishAssignment = (assignmentId) => api.patch(`/faculty/courses/assignments/${assignmentId}/publish`);
 export const getSubmissions = (assignmentId) => api.get(`/faculty/courses/assignments/${assignmentId}/submissions`);
 export const gradeSubmission = (submissionId, data) => api.patch(`/faculty/courses/submissions/${submissionId}/grade`, data);
@@ -53,6 +67,13 @@ export const clearNoDuesItem = (studentId, itemId) => api.patch(`/nodues/${stude
 // ─── Module 5 extras ───
 export const getSystemConfig = () => api.get('/admin/system-config');
 export const updateSystemConfig = (data) => api.put('/admin/system-config', data);
+
+// ─── Profile ───
+export const updateAvatar = (file) => {
+  const fd = new FormData();
+  fd.append('avatar', file);
+  return api.patch('/auth/me/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
 
 // ─── Existing Module 2 ───
 export const getStudentDashboard = () => api.get('/student/dashboard');

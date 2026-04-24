@@ -17,9 +17,17 @@ export default function Sidebar({ role, navItems }) {
     <div className="w-56 bg-white min-h-full text-gray-700 flex flex-col border-r border-gray-200">
       {/* User profile section */}
       <div className="p-4 border-b border-gray-200 flex items-center space-x-3">
-        <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
-          {initial}
-        </div>
+        {user?.avatar ? (
+          <img
+            src={user.avatar}
+            alt={displayName}
+            className="w-9 h-9 rounded-full object-cover border border-indigo-100 flex-shrink-0"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+            {initial}
+          </div>
+        )}
         <div className="flex flex-col min-w-0">
           <span className="text-gray-900 font-semibold text-sm truncate">{displayName}</span>
           <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{role}</span>

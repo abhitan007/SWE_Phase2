@@ -7,7 +7,7 @@ import api from '../../services/authService';
 export default function FacultyDirectory() {
   const [faculty, setFaculty] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ userId: '', name: '', email: '', password: 'Faculty@123', department: '', designation: '' });
+  const [form, setForm] = useState({ userId: '', employeeId: '', name: '', email: '', password: 'Faculty@123', department: '', designation: '' });
   const [msg, setMsg] = useState('');
 
   useEffect(() => { fetchData(); }, []);
@@ -19,7 +19,7 @@ export default function FacultyDirectory() {
       await api.post('/admin/faculty', form);
       fetchData();
       setIsModalOpen(false);
-      setForm({ userId: '', name: '', email: '', password: 'Faculty@123', department: '', designation: '' });
+      setForm({ userId: '', employeeId: '', name: '', email: '', password: 'Faculty@123', department: '', designation: '' });
       setMsg('');
     } catch (err) { setMsg(err.response?.data?.error || 'Failed to create faculty'); }
   };
@@ -60,7 +60,7 @@ export default function FacultyDirectory() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Faculty ID *</label>
-                <input value={form.userId} onChange={e => setForm({...form, userId: e.target.value})} placeholder="e.g. prof_kumar" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 text-sm" />
+                <input value={form.userId} onChange={e => setForm({...form, userId: e.target.value, employeeId: e.target.value})} placeholder="e.g. prof_kumar" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Full Name *</label>

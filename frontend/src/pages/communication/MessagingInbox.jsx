@@ -27,8 +27,9 @@ export default function MessagingInbox() {
       fetchData();
       setIsComposing(false);
       setForm({ recipient: '', subject: '', body: '' });
-    } catch {
-      alert('Failed to send message');
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Failed to send message';
+      alert(msg);
     }
   };
 
@@ -83,7 +84,7 @@ export default function MessagingInbox() {
           <div className="bg-white border border-gray-200 p-6 rounded-2xl w-full max-w-md shadow-xl">
             <h2 className="text-xl font-bold text-gray-900 mb-4">New Message</h2>
             <div className="space-y-4">
-              <input value={form.recipient} onChange={e => setForm({...form, recipient: e.target.value})} placeholder="Recipient User ID (MongoDB _id)" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500" />
+              <input value={form.recipient} onChange={e => setForm({...form, recipient: e.target.value})} placeholder="Recipient User ID (e.g. 230101120)" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500" />
               <input value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder="Subject" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500" />
               <textarea value={form.body} onChange={e => setForm({...form, body: e.target.value})} placeholder="Write your message..." className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500 h-28 resize-none"></textarea>
             </div>

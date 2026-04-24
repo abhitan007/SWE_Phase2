@@ -33,6 +33,8 @@ import SubmissionReview from './pages/faculty/SubmissionReview';
 import AttendanceTracking from './pages/faculty/AttendanceTracking';
 import GradeSubmission from './pages/faculty/GradeSubmission';
 
+import ProfileSettings from './pages/ProfileSettings';
+
 // Communication Pages (Module 4)
 import AnnouncementsFeed from './pages/communication/AnnouncementsFeed';
 import ResourceLibrary from './pages/communication/ResourceLibrary';
@@ -65,6 +67,8 @@ const NAV_ITEMS = {
     { title: 'Enrollments', path: '/admin/enrollments' },
     { title: 'Announcements', path: '/admin/announcements' },
     { title: 'Analytics', path: '/admin/analytics' },
+    { title: 'Messages', path: '/admin/messages' },
+    { title: 'Profile', path: '/admin/profile' },
   ],
   student: [
     { title: 'Dashboard', path: '/student-dashboard', end: true },
@@ -78,6 +82,7 @@ const NAV_ITEMS = {
     { title: 'Complaints', path: '/student/complaints' },
     { title: 'No Dues', path: '/student/nodues' },
     { title: 'Documents', path: '/student/documents' },
+    { title: 'Profile', path: '/student/profile' },
   ],
   faculty: [
     { title: 'Dashboard', path: '/faculty-dashboard', end: true },
@@ -86,6 +91,7 @@ const NAV_ITEMS = {
     { title: 'Submissions', path: '/faculty/submissions' },
     { title: 'Grading', path: '/faculty/grading' },
     { title: 'Messages', path: '/faculty/messages' },
+    { title: 'Profile', path: '/faculty/profile' },
   ],
 };
 
@@ -115,6 +121,8 @@ function App() {
           <Route path="/admin/enrollments" element={<ProtectedRoute allowedRoles={['admin']}><AppShell role="Admin" navItems={NAV_ITEMS.admin}><EnrollmentDashboard /></AppShell></ProtectedRoute>} />
           <Route path="/admin/announcements" element={<ProtectedRoute allowedRoles={['admin']}><AppShell role="Admin" navItems={NAV_ITEMS.admin}><AnnouncementsFeed /></AppShell></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AppShell role="Admin" navItems={NAV_ITEMS.admin}><AnalyticsDashboard /></AppShell></ProtectedRoute>} />
+          <Route path="/admin/messages" element={<ProtectedRoute allowedRoles={['admin']}><AppShell role="Admin" navItems={NAV_ITEMS.admin}><MessagingInbox /></AppShell></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin']}><AppShell role="Admin" navItems={NAV_ITEMS.admin}><ProfileSettings /></AppShell></ProtectedRoute>} />
           
           {/* Student Routes */}
           <Route path="/student-dashboard" element={
@@ -134,6 +142,7 @@ function App() {
           <Route path="/student/complaints" element={<ProtectedRoute allowedRoles={['student']}><AppShell role="Student" navItems={NAV_ITEMS.student}><Complaints /></AppShell></ProtectedRoute>} />
           <Route path="/student/nodues" element={<ProtectedRoute allowedRoles={['student']}><AppShell role="Student" navItems={NAV_ITEMS.student}><NoDues /></AppShell></ProtectedRoute>} />
           <Route path="/student/documents" element={<ProtectedRoute allowedRoles={['student']}><AppShell role="Student" navItems={NAV_ITEMS.student}><DocumentRequests /></AppShell></ProtectedRoute>} />
+          <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><AppShell role="Student" navItems={NAV_ITEMS.student}><ProfileSettings /></AppShell></ProtectedRoute>} />
           
           {/* Faculty Routes */}
           <Route path="/faculty-dashboard" element={
@@ -148,6 +157,7 @@ function App() {
           <Route path="/faculty/attendance" element={<ProtectedRoute allowedRoles={['faculty']}><AppShell role="Faculty" navItems={NAV_ITEMS.faculty}><AttendanceTracking /></AppShell></ProtectedRoute>} />
           <Route path="/faculty/grading" element={<ProtectedRoute allowedRoles={['faculty']}><AppShell role="Faculty" navItems={NAV_ITEMS.faculty}><GradeSubmission /></AppShell></ProtectedRoute>} />
           <Route path="/faculty/messages" element={<ProtectedRoute allowedRoles={['faculty']}><AppShell role="Faculty" navItems={NAV_ITEMS.faculty}><MessagingInbox /></AppShell></ProtectedRoute>} />
+          <Route path="/faculty/profile" element={<ProtectedRoute allowedRoles={['faculty']}><AppShell role="Faculty" navItems={NAV_ITEMS.faculty}><ProfileSettings /></AppShell></ProtectedRoute>} />
 
           {/* Catch all to redirect based on role */}
           <Route path="*" element={<Navigate to="/" replace />} />
