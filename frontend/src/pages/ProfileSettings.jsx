@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/common/Card';
-import { updateAvatar } from '../services/apiService';
+import Button from '../components/common/Button';
+import { updateAvatar, updateProfile } from '../services/apiService';
 
 const ROLE_LABEL = { admin: 'Administrator', faculty: 'Faculty', student: 'Student' };
 const ROLE_COLOR = {
@@ -17,6 +18,10 @@ export default function ProfileSettings() {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
+  const [editingHostel, setEditingHostel] = useState(false);
+  const [hostelForm, setHostelForm] = useState({ hostel: '', room: '' });
+  const [hostelSaving, setHostelSaving] = useState(false);
+  const [hostelMsg, setHostelMsg] = useState('');
 
   if (!user) return null;
 
@@ -39,6 +44,27 @@ export default function ProfileSettings() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const openHostelEdit = () => {
+    setHostelForm({ hostel: user.hostel || '', room: user.room || '' });
+    setHostelMsg('');
+    setEditingHostel(true);
+  };
+
+  const handleHostelSave = async () => {
+    setHostelSaving(true);
+    setHostelMsg('');
+    try {
+      await updateProfile({ hostel: hostelForm.hostel, room: hostelForm.room });
+      await refreshUser();
+      setEditingHostel(false);
+      setHostelMsg('');
+    } catch {
+      setHostelMsg('Failed to save. Please try again.');
+    } finally {
+      setHostelSaving(false);
+    }
+  };
+
   const fields = [
     { label: 'Full Name', value: user.name },
     { label: 'User ID / Roll No.', value: user.userId },
@@ -58,20 +84,14 @@ export default function ProfileSettings() {
       {/* Avatar + identity */}
       <Card>
         <div className="flex items-center gap-6">
-          {/* Avatar */}
           <div className="relative flex-shrink-0">
             {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
-              />
+              <img src={user.avatar} alt={user.name} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md" />
             ) : (
               <div className="w-20 h-20 rounded-full bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold border-4 border-white shadow-md select-none">
                 {initials}
               </div>
             )}
-            {/* Camera overlay */}
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
@@ -87,16 +107,9 @@ export default function ProfileSettings() {
                 </svg>
               )}
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
-          {/* Name + role */}
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
             <p className="text-sm text-gray-500 mt-0.5">{user.email}</p>
@@ -129,6 +142,62 @@ export default function ProfileSettings() {
           ))}
         </div>
       </Card>
+
+      {/* Hostel Info — students only */}
+      {user.role === 'student' && (
+        <Card>
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-bold text-gray-900">Hostel Information</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Used when filing complaints and hostel transfer requests.</p>
+            </div>
+            {!editingHostel && (
+              <button onClick={openHostelEdit} className="text-sm text-indigo-600 font-semibold hover:underline">Edit</button>
+            )}
+          </div>
+
+          {!editingHostel ? (
+            <div className="divide-y divide-gray-100">
+              <div className="py-3 flex justify-between items-center">
+                <span className="text-sm text-gray-500">Hostel</span>
+                <span className="text-sm font-medium text-gray-900">{user.hostel || <span className="text-gray-400 italic">Not set</span>}</span>
+              </div>
+              <div className="py-3 flex justify-between items-center">
+                <span className="text-sm text-gray-500">Room Number</span>
+                <span className="text-sm font-medium text-gray-900">{user.room || <span className="text-gray-400 italic">Not set</span>}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Hostel Name</label>
+                <input
+                  value={hostelForm.hostel}
+                  onChange={e => setHostelForm({ ...hostelForm, hostel: e.target.value })}
+                  placeholder="e.g. Brahmaputra Hostel"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Room Number</label>
+                <input
+                  value={hostelForm.room}
+                  onChange={e => setHostelForm({ ...hostelForm, room: e.target.value })}
+                  placeholder="e.g. A-104"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              {hostelMsg && <p className="text-xs text-rose-500">{hostelMsg}</p>}
+              <div className="flex gap-3 pt-1">
+                <Button onClick={handleHostelSave} disabled={hostelSaving}>
+                  {hostelSaving ? 'Saving...' : 'Save'}
+                </Button>
+                <button onClick={() => setEditingHostel(false)} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Security */}
       <Card>

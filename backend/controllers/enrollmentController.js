@@ -13,7 +13,6 @@ exports.enrollInCourse = async (req, res) => {
     });
     if (!offering) return res.status(404).json({ error: 'Course offering not found' });
     if (!offering.isOpen) return res.status(400).json({ error: 'Course registration is closed' });
-    if (offering.enrolled >= offering.capacity) return res.status(400).json({ error: 'Course is at full capacity' });
 
     const existing = await Enrollment.findOne({ student: studentId, courseOffering: courseOfferingId });
     if (existing) return res.status(409).json({ error: 'Already enrolled in this course' });
@@ -27,17 +26,33 @@ exports.enrollInCourse = async (req, res) => {
       if (!hasPrereqs) return res.status(400).json({ error: 'Prerequisites not satisfied' });
     }
 
-    const enrollment = await Enrollment.create({
-      student: studentId,
-      courseOffering: courseOfferingId,
-      semester: offering.semester,
-      year: offering.year
-    });
+    // Atomic capacity reservation: only the seat-grabber wins. If the document
+    // condition fails (full or closed), no increment happens.
+    const reserved = await CourseOffering.findOneAndUpdate(
+      { _id: courseOfferingId, isOpen: true, $expr: { $lt: ['$enrolled', '$capacity'] } },
+      { $inc: { enrolled: 1 } },
+      { new: true }
+    );
+    if (!reserved) return res.status(400).json({ error: 'Course is at full capacity' });
 
-    await CourseOffering.findByIdAndUpdate(courseOfferingId, { $inc: { enrolled: 1 } });
+    let enrollment;
+    try {
+      enrollment = await Enrollment.create({
+        student: studentId,
+        courseOffering: courseOfferingId,
+        semester: offering.semester,
+        year: offering.year
+      });
+    } catch (createErr) {
+      // Roll the seat back so we don't leak capacity on duplicate / validation errors.
+      await CourseOffering.findByIdAndUpdate(courseOfferingId, { $inc: { enrolled: -1 } });
+      if (createErr.code === 11000) return res.status(409).json({ error: 'Already enrolled in this course' });
+      throw createErr;
+    }
 
     res.status(201).json({ message: 'Enrolled successfully', enrollment });
   } catch (err) {
+    console.error('enrollInCourse:', err);
     if (err.code === 11000) return res.status(409).json({ error: 'Already enrolled in this course' });
     res.status(500).json({ error: 'Server error' });
   }

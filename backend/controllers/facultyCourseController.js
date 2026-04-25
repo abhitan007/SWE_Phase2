@@ -65,20 +65,36 @@ exports.getAssignments = async (req, res) => {
 
 exports.updateAssignment = async (req, res) => {
   try {
+    const existing = await Assignment.findById(req.params.assignmentId);
+    if (!existing) return res.status(404).json({ error: 'Assignment not found' });
+
+    const allowed = await verifyCourseOwnership(existing.courseOffering, req.user.userId);
+    if (!allowed) return res.status(403).json({ error: 'Not authorized for this assignment' });
+
+    // Once any submission exists, deadline edits are frozen so faculty can't
+    // retroactively flip late submissions to on-time.
+    const newDeadline = req.body.deadline ? new Date(req.body.deadline) : null;
+    if (newDeadline && newDeadline.getTime() !== new Date(existing.deadline).getTime()) {
+      const submissionCount = await Submission.countDocuments({ assignment: existing._id });
+      if (submissionCount > 0) {
+        return res.status(400).json({ error: 'Cannot change deadline after submissions exist' });
+      }
+    }
+
     const update = { $set: { ...req.body } };
     delete update.$set.attachmentData; // prevent overwriting with raw body
+    delete update.$set.faculty;        // faculty owner is immutable
+    delete update.$set.courseOffering; // course is immutable
     if (req.file) {
       update.$set.attachmentData = toDataUrl(req.file);
       update.$set.attachmentFileName = req.file.originalname;
     }
-    const assignment = await Assignment.findOneAndUpdate(
-      { _id: req.params.assignmentId, faculty: req.user.userId },
-      update,
-      { new: true }
+    const assignment = await Assignment.findByIdAndUpdate(
+      req.params.assignmentId, update, { new: true, runValidators: true }
     ).select('-attachmentData');
-    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
     res.json(assignment);
   } catch (err) {
+    console.error('updateAssignment:', err);
     res.status(500).json({ error: 'Failed to update assignment' });
   }
 };
@@ -87,8 +103,23 @@ exports.downloadAssignmentAttachment = async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.assignmentId);
     if (!assignment?.attachmentData) return res.status(404).json({ error: 'No attachment found' });
+
+    // Faculty must teach the offering; students must be enrolled in it.
+    if (req.user.role === 'student') {
+      const enr = await Enrollment.findOne({
+        student: req.user.userId,
+        courseOffering: assignment.courseOffering,
+        status: { $in: ['enrolled', 'completed'] }
+      });
+      if (!enr) return res.status(403).json({ error: 'Not enrolled in this course' });
+    } else if (req.user.role !== 'admin') {
+      const allowed = await verifyCourseOwnership(assignment.courseOffering, req.user.userId);
+      if (!allowed) return res.status(403).json({ error: 'Not authorized for this course' });
+    }
+
     sendDataUrl(res, assignment.attachmentData, assignment.attachmentFileName || 'attachment');
   } catch (err) {
+    console.error('downloadAssignmentAttachment:', err);
     res.status(500).json({ error: 'Failed to download attachment' });
   }
 };
@@ -124,13 +155,16 @@ exports.deleteAssignment = async (req, res) => {
 
 exports.getSubmissions = async (req, res) => {
   try {
-    const assignment = await Assignment.findOne({ _id: req.params.assignmentId, faculty: req.user.userId });
-    if (!assignment) return res.status(403).json({ error: 'Not authorized for this assignment' });
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
+    const allowed = await verifyCourseOwnership(assignment.courseOffering, req.user.userId);
+    if (!allowed) return res.status(403).json({ error: 'Not authorized for this assignment' });
     const submissions = await Submission.find({ assignment: req.params.assignmentId })
       .select('-fileData')
       .populate('student', 'name userId email');
     res.json(submissions);
   } catch (err) {
+    console.error('getSubmissions:', err);
     res.status(500).json({ error: 'Failed to fetch submissions' });
   }
 };
@@ -159,13 +193,21 @@ exports.gradeSubmission = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to grade this submission' });
     }
 
-    submission.score = score;
+    const numericScore = Number(score);
+    if (Number.isNaN(numericScore)) return res.status(400).json({ error: 'score must be a number' });
+    const maxScore = submission.assignment?.maxScore ?? 100;
+    if (numericScore < 0 || numericScore > maxScore) {
+      return res.status(400).json({ error: `score must be between 0 and ${maxScore}` });
+    }
+
+    submission.score = numericScore;
     submission.feedback = feedback;
     submission.gradedBy = req.user.userId;
     submission.gradedAt = new Date();
     await submission.save();
     res.json(submission);
   } catch (err) {
+    console.error('gradeSubmission:', err);
     res.status(500).json({ error: 'Failed to grade submission' });
   }
 };
@@ -237,17 +279,24 @@ exports.submitGrades = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized for this course' });
     }
     const { grades } = req.body;
+    if (!Array.isArray(grades)) return res.status(400).json({ error: 'grades must be an array' });
+
     const results = [];
+    const skipped = [];
     for (const g of grades) {
-      const enrollment = await Enrollment.findByIdAndUpdate(
-        g.enrollmentId,
+      // Each enrollment must belong to THIS courseOffering — prevents cross-course
+      // grade injection by passing a different course's enrollmentId.
+      const enrollment = await Enrollment.findOneAndUpdate(
+        { _id: g.enrollmentId, courseOffering: courseOfferingId },
         { grade: g.grade, gradePoints: g.gradePoints, isLocked: true, status: 'completed' },
-        { new: true }
+        { new: true, runValidators: true }
       );
-      results.push(enrollment);
+      if (enrollment) results.push(enrollment);
+      else skipped.push(g.enrollmentId);
     }
-    res.json({ message: 'Grades submitted', results });
+    res.json({ message: 'Grades submitted', results, skipped });
   } catch (err) {
+    console.error('submitGrades:', err);
     res.status(500).json({ error: 'Failed to submit grades' });
   }
 };

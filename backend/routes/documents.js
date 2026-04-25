@@ -4,9 +4,10 @@ const { authenticate, authorizeRoles } = require('../middleware/auth');
 const auditLogger = require('../middleware/auditLogger');
 
 const documentsController = require('../controllers/documentsController');
+const { heavyLimiter } = require('../middleware/rateLimiter');
 
-router.post('/my-transcript', authenticate, authorizeRoles('student'), documentsController.generateMyTranscript);
-router.post('/transcript/:studentId', authenticate, authorizeRoles('admin'), auditLogger('GENERATE_TRANSCRIPT'), documentsController.generateTranscript);
+router.post('/my-transcript', authenticate, authorizeRoles('student'), heavyLimiter, documentsController.generateMyTranscript);
+router.post('/transcript/:studentId', authenticate, authorizeRoles('admin'), heavyLimiter, auditLogger('GENERATE_TRANSCRIPT'), documentsController.generateTranscript);
 
 router.get('/transcript/verify/:documentId', documentsController.verifyTranscript);
 

@@ -12,14 +12,15 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, department } = req.body;
+    const { name, department, hostel, room } = req.body;
     const user = await User.findByIdAndUpdate(
       req.user.userId,
-      { name, department },
-      { new: true }
+      { name, department, hostel, room },
+      { new: true, runValidators: true }
     ).select('-password');
     res.json(user);
   } catch (err) {
+    console.error('updateProfile:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

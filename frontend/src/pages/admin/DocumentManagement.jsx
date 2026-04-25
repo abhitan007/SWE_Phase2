@@ -152,14 +152,19 @@ export default function DocumentManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Remarks (Optional)</label>
+                <label className="block text-sm font-medium text-gray-500 mb-1">
+                  {form.action === 'complete' ? 'Pickup Instructions' : 'Remarks (Optional)'}
+                </label>
                 <input
                   type="text"
                   value={form.remarks}
                   onChange={e => setForm({...form, remarks: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500"
-                  placeholder="e.g. Ready for pickup in 3 working days"
+                  placeholder={form.action === 'complete' ? 'e.g. Collect from Academic Section, Room 101 (Mon–Fri, 10am–4pm)' : 'e.g. Missing signature'}
                 />
+                {form.action === 'complete' && (
+                  <p className="text-xs text-gray-400 mt-1">This message will be shown to the student on their portal.</p>
+                )}
               </div>
             </div>
 

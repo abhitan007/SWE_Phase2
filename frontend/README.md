@@ -1,16 +1,55 @@
-# React + Vite
+# Frontend — IITG Affairs Portal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite + Tailwind CSS UI for the IIT Guwahati IITG Affairs Portal.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev          # http://localhost:5173
+```
 
-## React Compiler
+The backend must be running at `http://localhost:5000` (see the project root [README](../README.md)).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Build
 
-## Expanding the ESLint configuration
+```bash
+npm run build        # outputs to dist/
+npm run preview      # serve the production build
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Layout
+
+```
+src/
+├── main.jsx                   # React entry
+├── App.jsx                    # Router, ProtectedRoute, nav config per role
+├── context/
+│   └── AuthContext.jsx        # useAuth() — session state
+├── components/
+│   ├── Sidebar.jsx
+│   └── common/                # Card, Table, Button, AppShell
+├── pages/
+│   ├── Login.jsx              # Role picker + login form
+│   ├── ResetPassword.jsx      # 2-step password reset (request → verify token)
+│   ├── ChangePassword.jsx
+│   ├── ProfileSettings.jsx
+│   ├── AdminDashboard.jsx
+│   ├── FacultyDashboard.jsx
+│   ├── student/               # Student-portal pages
+│   ├── faculty/               # Faculty-portal pages
+│   ├── admin/                 # Admin-portal pages
+│   ├── hmc/                   # HMC-portal pages
+│   └── communication/         # Announcements, Messaging, Resources
+└── services/
+    ├── authService.js         # Axios instance with cookie credentials + 401 redirect
+    └── apiService.js          # All non-auth API calls
+```
+
+## Conventions
+
+- **Routing**: every protected route is wrapped in `<ProtectedRoute allowedRoles={[...]}>` in `App.jsx`. The component reads `user.role` from `AuthContext` and redirects to the role's dashboard on mismatch.
+- **API calls**: never call `axios` directly from a page; use a function exported from `services/apiService.js`. Cookies are sent automatically (`withCredentials: true`).
+- **403 vs 401**: the response interceptor only redirects to `/login` on 401. A 403 surfaces to the calling component so pages can show "not authorized for this resource" without bouncing the user.
+- **Styling**: Tailwind utility classes only. No CSS modules. Use `Card`, `Table`, and `Button` from `components/common/` instead of bespoke containers.
+- **Forms**: validate on submit, show inline error text, never use native `alert()` for success states.

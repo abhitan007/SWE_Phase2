@@ -3,15 +3,23 @@ const TranscriptRequest = require('../models/TranscriptRequest');
 exports.createTranscriptRequest = async (req, res) => {
   try {
     const { purpose, numCopies, destination } = req.body;
+    if (!purpose || !destination) {
+      return res.status(400).json({ error: 'purpose and destination are required' });
+    }
+    const copies = parseInt(numCopies, 10) || 1;
+    if (copies < 1 || copies > 10) {
+      return res.status(400).json({ error: 'numCopies must be between 1 and 10' });
+    }
     const request = new TranscriptRequest({
       studentId: req.user.userId,
       purpose,
-      numCopies,
+      numCopies: copies,
       destination
     });
     await request.save();
     res.status(201).json({ message: 'Transcript request submitted successfully', data: request });
   } catch (err) {
+    console.error('createTranscriptRequest:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

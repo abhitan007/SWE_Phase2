@@ -123,7 +123,7 @@ export default function DocumentRequests() {
                   <p className="text-xs text-gray-400">{new Date(req.createdAt).toLocaleDateString()}</p>
                   {req.remarks && <p className="text-xs text-gray-500 italic">Remarks: {req.remarks}</p>}
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end gap-2 min-w-[140px] text-right">
                   <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${STATUS_STYLES[req.status] || 'bg-gray-100 text-gray-500'}`}>
                     {req.status}
                   </span>
@@ -135,6 +135,17 @@ export default function DocumentRequests() {
                     >
                       {downloading === req.documentId ? 'Downloading...' : 'Download PDF'}
                     </button>
+                  )}
+                  {req.status === 'completed' && !req.documentId && (
+                    <div className="flex items-start gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-left max-w-[200px]">
+                      <svg className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="text-xs text-emerald-700 font-medium leading-snug">
+                        {req.remarks ? req.remarks : 'Ready for pickup at Academic Section'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

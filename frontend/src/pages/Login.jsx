@@ -39,7 +39,7 @@ export default function Login() {
     try {
       const res = await login(userId, password, selectedRole);
       let dashboardPath = `/${res.role}-dashboard`;
-      if (res.role === 'hmc_member' || res.role === 'hostel_staff') dashboardPath = '/hmc-dashboard';
+      if (res.role === 'hmc_member') dashboardPath = '/hmc-dashboard';
       navigate(dashboardPath);
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid credentials');
@@ -73,11 +73,11 @@ export default function Login() {
             {['student', 'faculty', 'admin', 'hmc_member'].map((role) => (
               <label key={role} className="flex items-center space-x-3 cursor-pointer group">
                 <div className="relative flex items-center justify-center">
-                  <input 
-                    type="radio" 
-                    name="role" 
-                    value={role} 
-                    checked={selectedRole === role} 
+                  <input
+                    type="radio"
+                    name="role"
+                    value={role}
+                    checked={selectedRole === role}
                     onChange={() => setSelectedRole(role)}
                     className="w-5 h-5 appearance-none border border-gray-400 rounded-full checked:border-[#1a73e8] outline-none cursor-pointer"
                   />
@@ -85,7 +85,9 @@ export default function Login() {
                     <div className="absolute w-2.5 h-2.5 bg-[#1a73e8] rounded-full pointer-events-none"></div>
                   )}
                 </div>
-                <span className="text-lg text-gray-800 capitalize select-none">{role === 'hmc_member' ? 'HMC Member' : role}</span>
+                <span className="text-lg text-gray-800 capitalize select-none">
+                  {role === 'hmc_member' ? 'HMC Member' : role}
+                </span>
               </label>
             ))}
           </div>
@@ -117,7 +119,7 @@ export default function Login() {
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative z-10 border border-gray-100">
         <div className="text-center mb-6">
           <img src="/iitg-logo.svg" alt="IIT Guwahati" className="w-14 h-14 mx-auto mb-3" />
-          <h2 className="text-[#2c3e50] font-bold text-base">Academic Affairs Portal</h2>
+          <h2 className="text-[#2c3e50] font-bold text-base">IITG Affairs Portal</h2>
           <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: accentColor + '15', color: accentColor }}>
             {displayRole} Login
           </span>
@@ -155,7 +157,7 @@ export default function Login() {
           </button>
         </div>
 
-        <p className="mt-4 text-xs text-gray-400 text-center">2026 Academic Affairs, IIT Guwahati</p>
+        <p className="mt-4 text-xs text-gray-400 text-center">2026 IITG Affairs, IIT Guwahati</p>
       </div>
     </div>
   );

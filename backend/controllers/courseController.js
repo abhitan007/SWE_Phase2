@@ -7,13 +7,18 @@ const StudentProfile = require('../models/StudentProfile');
 
 exports.getCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ isRetired: false })
+    // Admins can opt-in to see retired courses via ?includeRetired=true.
+    const filter = (req.user?.role === 'admin' && req.query.includeRetired === 'true')
+      ? {}
+      : { isRetired: false };
+    const courses = await Course.find(filter)
       .populate('prerequisites', 'code name')
       .populate('department', 'name code')
       .populate('allowedDepartments', 'name code')
       .populate('allowedPrograms', 'name');
     res.json(courses);
   } catch (err) {
+    console.error('getCourses:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

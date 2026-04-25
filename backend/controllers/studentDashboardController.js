@@ -2,6 +2,7 @@ const Enrollment = require('../models/Enrollment');
 const AttendanceSession = require('../models/AttendanceSession');
 const Assignment = require('../models/Assignment');
 const Submission = require('../models/Submission');
+const Announcement = require('../models/Announcement');
 
 const GRADE_POINTS = { 'AA': 10, 'AB': 9, 'BB': 8, 'BC': 7, 'CC': 6, 'CD': 5, 'DD': 4, 'fail': 0 };
 const ATTENDANCE_WARN_THRESHOLD = 75;
@@ -95,6 +96,18 @@ exports.getStudentDashboard = async (req, res) => {
         maxScore: a.maxScore
       }));
 
+    // System + course announcements relevant to this student
+    const announcements = await Announcement.find({
+      isActive: true,
+      $or: [
+        { scope: 'system' },
+        { scope: 'course', courseOffering: { $in: activeCoIds } }
+      ]
+    })
+      .populate('author', 'name role')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
     res.json({
       enrolledCourses: activeEnrollments.map(e => ({
         offeringId: e.courseOffering?._id,
@@ -109,7 +122,7 @@ exports.getStudentDashboard = async (req, res) => {
       cgpa,
       attendanceWarnings,
       pendingAssignments,
-      announcements: []
+      announcements
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

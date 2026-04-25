@@ -46,6 +46,24 @@ exports.submitAssignment = async (req, res) => {
     const assignment = await Assignment.findById(req.params.assignmentId);
     if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
 
+    // Student must be enrolled in the assignment's course offering.
+    const enr = await Enrollment.findOne({
+      student: req.user.userId,
+      courseOffering: assignment.courseOffering,
+      status: 'enrolled'
+    });
+    if (!enr) return res.status(403).json({ error: 'Not enrolled in this course' });
+
+    // Per-assignment file type whitelist (if configured on the assignment)
+    if (Array.isArray(assignment.allowedFileTypes) && assignment.allowedFileTypes.length > 0) {
+      const ext = (req.file.originalname.split('.').pop() || '').toLowerCase();
+      const allowed = assignment.allowedFileTypes
+        .map(t => String(t).toLowerCase().replace(/^\./, ''));
+      if (!allowed.includes(ext) && !allowed.includes(req.file.mimetype.toLowerCase())) {
+        return res.status(400).json({ error: `File type not allowed. Permitted: ${assignment.allowedFileTypes.join(', ')}` });
+      }
+    }
+
     const isLate = new Date() > new Date(assignment.deadline);
     const submission = await Submission.findOneAndUpdate(
       { assignment: req.params.assignmentId, student: req.user.userId },
@@ -61,6 +79,7 @@ exports.submitAssignment = async (req, res) => {
     delete out.fileData;
     res.status(201).json(out);
   } catch (err) {
+    console.error('submitAssignment:', err);
     res.status(500).json({ error: 'Failed to submit assignment' });
   }
 };

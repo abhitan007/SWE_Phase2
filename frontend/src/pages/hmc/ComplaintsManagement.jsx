@@ -54,6 +54,11 @@ export default function ComplaintsManagement() {
                   {comp.status}
                 </span>
               </div>
+              {(comp.hostel || comp.room) && (
+                <p className="text-xs text-indigo-700 bg-indigo-50 rounded-lg px-2 py-1 inline-block mt-1">
+                  {comp.hostel}{comp.room ? ` / Room ${comp.room}` : ''}
+                </p>
+              )}
               <p className="text-sm text-gray-600 mt-2">{comp.description}</p>
               {comp.attachment && (
                 <div className="mt-2">

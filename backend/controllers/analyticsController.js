@@ -3,6 +3,7 @@ const AttendanceSession = require('../models/AttendanceSession');
 const Submission = require('../models/Submission');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
+const Department = require('../models/Department');
 
 exports.getCourseAnalytics = async (req, res) => {
   try {
@@ -19,9 +20,10 @@ exports.getCourseAnalytics = async (req, res) => {
       }
     }
 
-    // Average GPA
-    const avgGPA = gradedCount > 0
-      ? (enrollments.filter(e => e.gradePoints != null).reduce((s, e) => s + e.gradePoints, 0) / gradedCount).toFixed(2)
+    // Average GPA — divide by the same set we summed over
+    const withPoints = enrollments.filter(e => e.gradePoints != null);
+    const avgGPA = withPoints.length > 0
+      ? (withPoints.reduce((s, e) => s + e.gradePoints, 0) / withPoints.length).toFixed(2)
       : null;
 
     // Attendance
@@ -68,8 +70,9 @@ exports.getProgramAnalytics = async (req, res) => {
     const studentMap = {};
     for (const e of enrollments) {
       if (!e.student) continue;
+      const credits = e.courseOffering?.course?.credits;
+      if (!credits) continue; // skip rather than fabricate a default
       const sid = e.student._id.toString();
-      const credits = e.courseOffering?.course?.credits || 3;
       if (!studentMap[sid]) studentMap[sid] = { total: 0, credits: 0 };
       studentMap[sid].total += e.gradePoints * credits;
       studentMap[sid].credits += credits;
@@ -93,15 +96,21 @@ exports.getProgramAnalytics = async (req, res) => {
 exports.getDepartmentAnalytics = async (req, res) => {
   try {
     const { deptId } = req.params;
-    const students = await User.countDocuments({ department: deptId, role: 'student' });
-    const faculty = await User.countDocuments({ department: deptId, role: 'faculty' });
+    const dept = await Department.findById(deptId).select('name code');
+    if (!dept) return res.status(404).json({ error: 'Department not found' });
+
+    // User.department is a string column (code or name). Match either.
+    const deptFilter = { $in: [dept.code, dept.name].filter(Boolean) };
+    const students = await User.countDocuments({ department: deptFilter, role: 'student' });
+    const faculty = await User.countDocuments({ department: deptFilter, role: 'faculty' });
 
     res.json({
       totalStudents: students,
       totalFaculty: faculty,
-      department: deptId
+      department: { _id: dept._id, name: dept.name, code: dept.code }
     });
   } catch (err) {
+    console.error('getDepartmentAnalytics:', err);
     res.status(500).json({ error: 'Failed to fetch department analytics' });
   }
 };
@@ -114,8 +123,8 @@ exports.getStudentAnalytics = async (req, res) => {
 
     let totalCredits = 0, weightedSum = 0;
     for (const e of enrollments) {
-      if (e.gradePoints != null) {
-        const credits = e.courseOffering?.course?.credits || 3;
+      const credits = e.courseOffering?.course?.credits;
+      if (e.gradePoints != null && credits) {
         totalCredits += credits;
         weightedSum += e.gradePoints * credits;
       }

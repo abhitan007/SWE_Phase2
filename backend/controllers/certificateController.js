@@ -63,8 +63,13 @@ exports.downloadCertificate = async (req, res) => {
     if (!certificate || certificate.status !== 'Approved') {
       return res.status(400).json({ error: 'Certificate not available for download' });
     }
+    const isOwner = certificate.studentId?.toString() === req.user.userId;
+    if (!isOwner && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized to download this certificate' });
+    }
     res.json({ message: 'Download link ready', downloadUrl: certificate.downloadUrl });
   } catch (err) {
+    console.error('downloadCertificate:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

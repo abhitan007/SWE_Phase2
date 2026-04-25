@@ -79,10 +79,15 @@ exports.removeEnrollment = async (req, res) => {
     const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
     if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
 
-    await CourseOffering.findByIdAndUpdate(enrollment.courseOffering, { $inc: { enrolled: -1 } });
+    // Only decrement when the enrollment was still occupying a seat. Dropped
+    // enrollments already gave the seat back at drop time.
+    if (enrollment.status === 'enrolled') {
+      await CourseOffering.findByIdAndUpdate(enrollment.courseOffering, { $inc: { enrolled: -1 } });
+    }
 
     res.json({ message: 'Enrollment removed' });
   } catch (err) {
+    console.error('removeEnrollment:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

@@ -321,21 +321,44 @@ exports.downloadTranscript = async (req, res) => {
     const doc = await Document.findOne({ documentId: req.params.documentId })
       .populate('student', 'userId');
     if (!doc?.fileData) return res.status(404).json({ error: 'Transcript not found' });
+
+    // Only the owning student or an admin can download. Faculty / HMC don't get
+    // access to other students' transcripts via this endpoint.
+    const isOwner = doc.student?._id?.toString() === req.user.userId;
+    if (!isOwner && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized to download this transcript' });
+    }
+
     const rollNumber = doc.student?.userId || req.params.documentId;
     sendDataUrl(res, doc.fileData, `${rollNumber}_transcript.pdf`);
   } catch (err) {
+    console.error('downloadTranscript:', err);
     res.status(500).json({ error: 'Failed to download transcript' });
   }
 };
 
+// Public endpoint: returns minimum proof that a document with this ID was issued.
+// To get the student name back, the caller must additionally provide the
+// expected roll number (?rollNumber=...) — we confirm-or-deny instead of leaking.
 exports.verifyTranscript = async (req, res) => {
   try {
     const doc = await Document.findOne({ documentId: req.params.documentId })
       .select('-fileData')
       .populate('student', 'name userId');
-    if (!doc) return res.json({ valid: false, message: 'Document not found' });
-    res.json({ valid: true, documentId: doc.documentId, student: doc.student, generatedAt: doc.createdAt });
+    if (!doc) return res.json({ valid: false });
+
+    const expectedRoll = (req.query.rollNumber || '').trim();
+    if (expectedRoll) {
+      const matches = doc.student?.userId === expectedRoll;
+      return res.json({
+        valid: matches,
+        generatedAt: matches ? doc.createdAt : undefined,
+        name: matches ? doc.student?.name : undefined
+      });
+    }
+    res.json({ valid: true, generatedAt: doc.createdAt });
   } catch (err) {
+    console.error('verifyTranscript:', err);
     res.status(500).json({ error: 'Failed to verify transcript' });
   }
 };

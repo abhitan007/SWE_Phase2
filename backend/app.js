@@ -6,13 +6,19 @@ const cookieParser = require('cookie-parser');
 const app = express();
 
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 app.use(cookieParser());
 // Avatar images are stored as Base64 data URLs in MongoDB — no static file serving needed.
+
+const { apiLimiter, heavyLimiter } = require('./middleware/rateLimiter');
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', time: new Date() });
 });
+
+// Baseline rate limit for the whole API. Per-route stricter limits live in the
+// route files themselves.
+app.use('/api', apiLimiter);
 
 // Module 1 — IAM
 const authRoutes = require('./routes/auth');

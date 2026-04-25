@@ -23,10 +23,13 @@ exports.getAll = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const asset = await Asset.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const asset = await Asset.findByIdAndUpdate(req.params.id, req.body, {
+      new: true, runValidators: true
+    });
     if (!asset) return res.status(404).json({ error: 'Asset not found' });
     res.json(asset);
   } catch (err) {
+    console.error('asset.update:', err);
     res.status(500).json({ error: 'Failed to update asset' });
   }
 };
@@ -35,12 +38,22 @@ exports.logMaintenance = async (req, res) => {
   try {
     const asset = await Asset.findById(req.params.id);
     if (!asset) return res.status(404).json({ error: 'Asset not found' });
-    asset.maintenanceLog.push(req.body);
-    asset.lastMaintenanceDate = new Date();
-    if (req.body.newCondition) asset.condition = req.body.newCondition;
+    const { description, performedBy, cost, newCondition } = req.body;
+    const entry = { date: new Date() };
+    if (description) entry.description = description;
+    if (performedBy) entry.performedBy = performedBy;
+    if (cost !== undefined && cost !== '') {
+      const c = Number(cost);
+      if (Number.isNaN(c)) return res.status(400).json({ error: 'cost must be a number' });
+      entry.cost = c;
+    }
+    asset.maintenanceLog.push(entry);
+    asset.lastMaintenanceDate = entry.date;
+    if (newCondition) asset.condition = newCondition;
     await asset.save();
     res.json(asset);
   } catch (err) {
+    console.error('asset.logMaintenance:', err);
     res.status(500).json({ error: 'Failed to log maintenance' });
   }
 };

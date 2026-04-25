@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import ResetPassword from './pages/ResetPassword';
+import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/AdminDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import AppShell from './layouts/AppShell';
@@ -56,7 +57,7 @@ import AnnouncementsFeed from './pages/communication/AnnouncementsFeed';
 import MessagingInbox from './pages/communication/MessagingInbox';
 
 function getDashboardPath(role) {
-  if (role === 'hmc_member' || role === 'hostel_staff') return '/hmc-dashboard';
+  if (role === 'hmc_member') return '/hmc-dashboard';
   return `/${role}-dashboard`;
 }
 
@@ -90,6 +91,13 @@ const NAV_ITEMS = {
     { title: 'Announcements', path: '/admin/announcements' },
     { title: 'Analytics', path: '/admin/analytics' },
     { title: 'Messages', path: '/admin/messages' },
+    { title: '— HMC —', path: null, disabled: true },
+    { title: 'HMC Leaves', path: '/hmc/leaves' },
+    { title: 'HMC Complaints', path: '/hmc/complaints' },
+    { title: 'No Dues', path: '/hmc/nodues' },
+    { title: 'Transfers', path: '/hmc/transfers' },
+    { title: 'Assets', path: '/hmc/assets' },
+    { title: 'HMC Members', path: '/hmc/members' },
     { title: 'Profile', path: '/admin/profile' },
   ],
   student: [
@@ -200,23 +208,23 @@ function App() {
           <Route path="/faculty/messages" element={<ProtectedRoute allowedRoles={['faculty']}><AppShell role="Faculty" navItems={NAV_ITEMS.faculty}><MessagingInbox /></AppShell></ProtectedRoute>} />
           <Route path="/faculty/profile" element={<ProtectedRoute allowedRoles={['faculty']}><AppShell role="Faculty" navItems={NAV_ITEMS.faculty}><ProfileSettings /></AppShell></ProtectedRoute>} />
 
-          {/* HMC Routes */}
+          {/* HMC Routes — accessible by admin and hmc_member */}
           <Route path="/hmc-dashboard" element={
-            <ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}>
+            <ProtectedRoute allowedRoles={['admin', 'hmc_member']}>
               <AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}>
                 <HMCDashboard />
               </AppShell>
             </ProtectedRoute>
           } />
-          <Route path="/hmc/leaves" element={<ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><LeaveManagement /></AppShell></ProtectedRoute>} />
-          <Route path="/hmc/complaints" element={<ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><ComplaintsManagement /></AppShell></ProtectedRoute>} />
-          <Route path="/hmc/nodues" element={<ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><NoDuesManagement /></AppShell></ProtectedRoute>} />
-          <Route path="/hmc/transfers" element={<ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><TransferManagement /></AppShell></ProtectedRoute>} />
-          <Route path="/hmc/assets" element={<ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><AssetManagement /></AppShell></ProtectedRoute>} />
-          <Route path="/hmc/members" element={<ProtectedRoute allowedRoles={['hmc_member', 'hostel_staff']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><HMCMembers /></AppShell></ProtectedRoute>} />
+          <Route path="/hmc/leaves" element={<ProtectedRoute allowedRoles={['admin', 'hmc_member']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><LeaveManagement /></AppShell></ProtectedRoute>} />
+          <Route path="/hmc/complaints" element={<ProtectedRoute allowedRoles={['admin', 'hmc_member']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><ComplaintsManagement /></AppShell></ProtectedRoute>} />
+          <Route path="/hmc/nodues" element={<ProtectedRoute allowedRoles={['admin', 'hmc_member']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><NoDuesManagement /></AppShell></ProtectedRoute>} />
+          <Route path="/hmc/transfers" element={<ProtectedRoute allowedRoles={['admin', 'hmc_member']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><TransferManagement /></AppShell></ProtectedRoute>} />
+          <Route path="/hmc/assets" element={<ProtectedRoute allowedRoles={['admin', 'hmc_member']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><AssetManagement /></AppShell></ProtectedRoute>} />
+          <Route path="/hmc/members" element={<ProtectedRoute allowedRoles={['admin', 'hmc_member']}><AppShell role="HMC Staff" navItems={NAV_ITEMS.hmc}><HMCMembers /></AppShell></ProtectedRoute>} />
 
-          {/* Catch all to redirect based on role */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Unknown URLs render the 404 page (not a silent redirect) */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

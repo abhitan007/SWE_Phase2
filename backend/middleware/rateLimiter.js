@@ -11,4 +11,23 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true, // Successful logins don't count against the limit
 });
 
-module.exports = { authLimiter };
+// Baseline limiter for the whole API. Generous in dev so day-to-day testing
+// isn't disrupted; tighter in prod to absorb spam / abuse.
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isDev ? 600 : 120,
+  message: { error: 'Too many requests. Please slow down and try again shortly.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Tighter limiter for expensive endpoints (PDF generation, bulk import).
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isDev ? 30 : 5,
+  message: { error: 'Rate limit exceeded for this operation. Please wait before retrying.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authLimiter, apiLimiter, heavyLimiter };

@@ -1,14 +1,46 @@
 const Announcement = require('../models/Announcement');
 const Enrollment = require('../models/Enrollment');
+const CourseOffering = require('../models/CourseOffering');
 
 exports.create = async (req, res) => {
   try {
+    const { title, content, scope, courseOffering, priority } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ error: 'title and content are required' });
+    }
+
+    // Only admins may post system-wide announcements. Faculty must scope to a
+    // course they teach. Anything else falls back to a course announcement.
+    let finalScope = scope === 'system' ? 'system' : 'course';
+    if (finalScope === 'system' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can post system-wide announcements' });
+    }
+
+    if (finalScope === 'course') {
+      if (!courseOffering) {
+        return res.status(400).json({ error: 'courseOffering is required for course-scoped announcements' });
+      }
+      if (req.user.role === 'faculty') {
+        const offering = await CourseOffering.findById(courseOffering).select('faculty instructors');
+        const isOwner = offering && (
+          offering.faculty?.toString() === req.user.userId ||
+          (offering.instructors || []).some(i => i.toString() === req.user.userId)
+        );
+        if (!isOwner) return res.status(403).json({ error: 'Not authorized for this course' });
+      }
+    }
+
     const announcement = await Announcement.create({
-      ...req.body,
+      title,
+      content,
+      scope: finalScope,
+      courseOffering: finalScope === 'course' ? courseOffering : undefined,
+      priority: ['low', 'normal', 'high'].includes(priority) ? priority : 'normal',
       author: req.user.userId
     });
     res.status(201).json(announcement);
   } catch (err) {
+    console.error('announcement.create:', err);
     res.status(500).json({ error: 'Failed to create announcement' });
   }
 };

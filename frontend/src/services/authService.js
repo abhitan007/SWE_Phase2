@@ -8,7 +8,9 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    // Only treat 401 as "session is gone" — 403 (insufficient permissions) is
+    // a routing/authorization concern that the page should handle itself.
+    if (error.response && error.response.status === 401) {
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
@@ -21,7 +23,7 @@ export const login = (userId, password, role) => api.post('/auth/login', { userI
 export const logout = () => api.post('/auth/logout');
 export const getMe = () => api.get('/auth/me');
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
-export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password });
+export const resetPassword = (token, newPassword) => api.post('/auth/reset-password', { token, newPassword });
 export const changePassword = (currentPassword, newPassword) =>
   api.put('/auth/change-password', { currentPassword, newPassword });
 

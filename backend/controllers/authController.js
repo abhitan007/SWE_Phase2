@@ -1,6 +1,13 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const BlacklistToken = require('../models/BlacklistToken');
+const PasswordResetToken = require('../models/PasswordResetToken');
 const { generateToken } = require('../utils/jwt');
+const { validatePassword } = require('../utils/passwordPolicy');
+
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 exports.login = async (req, res) => {
   try {
@@ -73,27 +80,72 @@ exports.updateAvatar = async (req, res) => {
   }
 };
 
+// Step 1: user submits userId + email. We always respond 200 with a generic
+// message so this endpoint can't be used to enumerate accounts. If the user is
+// found AND the email matches, we mint a single-use token and (in production)
+// would email it. In dev we return it in `devToken` so the flow is testable.
 exports.forgotPassword = async (req, res) => {
   try {
     const { userId, email } = req.body;
+    if (!userId || !email) {
+      return res.status(400).json({ error: 'userId and email are required' });
+    }
     const user = await User.findOne({ userId });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    // In production, send OTP via email. Here we mock it.
-    res.json({ message: 'OTP sent to your registered IITG email address.' });
+    const message = 'If the account exists, a password reset link has been sent to the registered email address.';
+
+    if (!user || user.email.toLowerCase() !== String(email).toLowerCase()) {
+      return res.json({ message });
+    }
+
+    // Invalidate previous outstanding tokens for this user
+    await PasswordResetToken.deleteMany({ user: user._id, usedAt: { $exists: false } });
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    await PasswordResetToken.create({
+      user: user._id,
+      tokenHash: hashToken(rawToken),
+      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS)
+    });
+
+    // TODO(production): email the link `https://.../reset-password?token=${rawToken}`
+    const payload = { message };
+    if (process.env.NODE_ENV !== 'production') payload.devToken = rawToken;
+    res.json(payload);
   } catch (err) {
+    console.error('forgotPassword:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
+// Step 2: user submits the token + new password. Token must exist, be unused,
+// not expired, and the new password must satisfy the password policy.
 exports.resetPassword = async (req, res) => {
   try {
-    const { userId, newPassword } = req.body;
-    const user = await User.findOne({ userId });
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'token and newPassword are required' });
+    }
+
+    const record = await PasswordResetToken.findOne({ tokenHash: hashToken(token) });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Reset link is invalid or has expired. Please request a new one.' });
+    }
+
+    const user = await User.findById(record.user);
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const check = validatePassword(newPassword, user.userId);
+    if (!check.ok) return res.status(400).json({ error: check.error });
+
     user.password = newPassword;
     await user.save();
+
+    record.usedAt = new Date();
+    await record.save();
+
     res.json({ message: 'Password has been successfully reset.' });
   } catch (err) {
+    console.error('resetPassword:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -106,17 +158,8 @@ exports.changePassword = async (req, res) => {
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) return res.status(401).json({ error: 'Current password is incorrect' });
 
-    // Password strength validation
-    if (newPassword.length < 8 || newPassword.length > 16) {
-      return res.status(400).json({ error: 'Password must be 8-16 characters' });
-    }
-    if (!/[A-Z]/.test(newPassword)) return res.status(400).json({ error: 'Password must contain an uppercase letter' });
-    if (!/[a-z]/.test(newPassword)) return res.status(400).json({ error: 'Password must contain a lowercase letter' });
-    if (!/[0-9]/.test(newPassword)) return res.status(400).json({ error: 'Password must contain a digit' });
-    if (!/[!@#$%^&*]/.test(newPassword)) return res.status(400).json({ error: 'Password must contain a special character' });
-    if (newPassword.toLowerCase().includes(user.userId.toLowerCase())) {
-      return res.status(400).json({ error: 'Password must not contain your username' });
-    }
+    const check = validatePassword(newPassword, user.userId);
+    if (!check.ok) return res.status(400).json({ error: check.error });
 
     user.password = newPassword;
     await user.save();

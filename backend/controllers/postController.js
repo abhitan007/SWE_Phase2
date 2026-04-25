@@ -1,12 +1,39 @@
 const Post = require('../models/Post');
 const Enrollment = require('../models/Enrollment');
+const CourseOffering = require('../models/CourseOffering');
 const { toDataUrl, sendDataUrl } = require('../utils/fileHelper');
+
+// Returns true if the user is allowed to participate in posts/replies for this
+// offering: admin always, faculty must be primary or co-instructor, students
+// must have an active or completed enrollment.
+async function canAccessOffering(offeringId, user) {
+  if (user.role === 'admin') return true;
+  if (user.role === 'faculty') {
+    const offering = await CourseOffering.findById(offeringId).select('faculty instructors');
+    if (!offering) return false;
+    return offering.faculty?.toString() === user.userId
+      || (offering.instructors || []).some(i => i.toString() === user.userId);
+  }
+  if (user.role === 'student') {
+    const enr = await Enrollment.findOne({
+      student: user.userId,
+      courseOffering: offeringId,
+      status: { $in: ['enrolled', 'completed'] }
+    });
+    return !!enr;
+  }
+  return false;
+}
 
 exports.createPost = async (req, res) => {
   try {
     const { courseOfferingId } = req.params;
     const { body } = req.body;
     if (!body?.trim()) return res.status(400).json({ error: 'Post body is required' });
+
+    if (!await canAccessOffering(courseOfferingId, req.user)) {
+      return res.status(403).json({ error: 'Not authorized for this course' });
+    }
 
     const postData = {
       body: body.trim(),
@@ -70,6 +97,10 @@ exports.addReply = async (req, res) => {
 
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    if (!await canAccessOffering(post.courseOffering, req.user)) {
+      return res.status(403).json({ error: 'Not authorized for this course' });
+    }
 
     post.replies.push({ author: req.user.userId, body: body.trim() });
     await post.save();

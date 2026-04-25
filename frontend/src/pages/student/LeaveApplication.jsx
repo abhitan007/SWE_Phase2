@@ -18,13 +18,19 @@ export default function LeaveApplication() {
   };
 
   const handleSubmit = async () => {
+    if (!form.startDate || !form.endDate || !form.reason) {
+      return alert('Please fill in all fields');
+    }
+    if (new Date(form.endDate) < new Date(form.startDate)) {
+      return alert('End date must be on or after start date');
+    }
     try {
       await createLeaveRequest(form);
       fetchLeaves();
       setIsModalOpen(false);
       setForm({ type: 'Medical', startDate: '', endDate: '', reason: '' });
-    } catch {
-      alert('Failed to submit leave request');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to submit leave request');
     }
   };
 
@@ -94,7 +100,7 @@ export default function LeaveApplication() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">End Date</label>
-                  <input type="date" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500" />
+                  <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-indigo-500" />
                 </div>
               </div>
               <div>

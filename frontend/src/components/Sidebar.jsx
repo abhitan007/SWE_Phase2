@@ -37,6 +37,11 @@ export default function Sidebar({ role, navItems }) {
       {/* Navigation */}
       <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item, index) => (
+          item.disabled || !item.path ? (
+            <div key={index} className="px-3 pt-3 pb-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.title.replace(/^— | —$/g, '')}</span>
+            </div>
+          ) : (
           <NavLink
             key={index}
             to={item.path}
@@ -51,6 +56,7 @@ export default function Sidebar({ role, navItems }) {
           >
             {item.title}
           </NavLink>
+          )
         ))}
       </nav>
       

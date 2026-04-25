@@ -4,7 +4,7 @@ const ctrl = require('../controllers/hostelTransferController');
 
 router.post('/', authenticate, authorizeRoles('student'), ctrl.create);
 router.get('/my', authenticate, authorizeRoles('student'), ctrl.getMyTransfers);
-router.get('/', authenticate, authorizeRoles('hmc_member', 'hostel_staff'), ctrl.getAll);
-router.patch('/:id/review', authenticate, authorizeRoles('hmc_member', 'hostel_staff'), ctrl.review);
+router.get('/', authenticate, authorizeRoles('admin', 'hmc_member'), ctrl.getAll);
+router.patch('/:id/review', authenticate, authorizeRoles('admin', 'hmc_member'), ctrl.review);
 
 module.exports = router;

@@ -1,6 +1,9 @@
 const HMCMember = require('../models/HMCMember');
+const User = require('../models/User');
 
 const verifyWarden = async (userId) => {
+  const user = await User.findById(userId).select('role');
+  if (user?.role === 'admin') return true;
   const member = await HMCMember.findOne({ user: userId, isActive: true });
   return member && member.role === 'Warden';
 };
@@ -35,10 +38,18 @@ exports.add = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     if (!await verifyWarden(req.user.userId)) return res.status(403).json({ error: 'Only Wardens can manage HMC members' });
-    const member = await HMCMember.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // Whitelist updatable fields. `user` is immutable (use add/remove instead).
+    const { role, isActive } = req.body;
+    const update = {};
+    if (role !== undefined) update.role = role;
+    if (isActive !== undefined) update.isActive = isActive;
+    const member = await HMCMember.findByIdAndUpdate(req.params.id, update, {
+      new: true, runValidators: true
+    });
     if (!member) return res.status(404).json({ error: 'HMC member not found' });
     res.json(member);
   } catch (err) {
+    console.error('hmc.update:', err);
     res.status(500).json({ error: 'Failed to update HMC member' });
   }
 };

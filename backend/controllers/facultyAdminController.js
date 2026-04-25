@@ -38,11 +38,14 @@ exports.updateFaculty = async (req, res) => {
     if (!profile) return res.status(404).json({ error: 'Faculty not found' });
 
     const { name, email, designation, department } = req.body;
-    await User.findByIdAndUpdate(profile.user._id, { name, email });
-    await FacultyProfile.findByIdAndUpdate(req.params.id, { designation, department });
+    // Keep User.department in sync — many filters (course eligibility, dept
+    // analytics) read off of User.department.
+    await User.findByIdAndUpdate(profile.user._id, { name, email, department }, { runValidators: true });
+    await FacultyProfile.findByIdAndUpdate(req.params.id, { designation, department }, { runValidators: true });
 
     res.json({ message: 'Faculty updated successfully' });
   } catch (err) {
+    console.error('updateFaculty:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -53,10 +56,11 @@ exports.assignCourse = async (req, res) => {
     const profile = await FacultyProfile.findById(req.params.id);
     if (!profile) return res.status(404).json({ error: 'Faculty not found' });
 
+    // Set as primary AND ensure they are in the instructors[] list.
     const offering = await CourseOffering.findByIdAndUpdate(
       offeringId,
-      { faculty: profile.user },
-      { new: true }
+      { faculty: profile.user, $addToSet: { instructors: profile.user } },
+      { new: true, runValidators: true }
     );
     if (!offering) return res.status(404).json({ error: 'Course offering not found' });
 
@@ -64,6 +68,7 @@ exports.assignCourse = async (req, res) => {
 
     res.json({ message: 'Course assigned to faculty', offering });
   } catch (err) {
+    console.error('assignCourse:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -74,11 +79,12 @@ exports.updateFacultyStatus = async (req, res) => {
     const profile = await FacultyProfile.findByIdAndUpdate(
       req.params.id,
       { isActive },
-      { new: true }
+      { new: true, runValidators: true }
     );
     if (!profile) return res.status(404).json({ error: 'Faculty not found' });
     res.json({ message: `Faculty ${isActive ? 'activated' : 'deactivated'}`, profile });
   } catch (err) {
+    console.error('updateFacultyStatus:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };

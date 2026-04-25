@@ -68,13 +68,15 @@ export const updateComplaintStatus = (id, status) => api.patch(`/complaints/${id
 
 export const getMyNoDues = () => api.get('/nodues/my');
 export const getAllNoDues = () => api.get('/nodues');
-export const clearNoDuesItem = (studentId, itemId) => api.patch(`/nodues/${studentId}/items/${itemId}/clear`);
+export const clearNoDuesItem = (studentId, itemId, data) => api.patch(`/nodues/${studentId}/items/${itemId}/clear`, data);
+export const initializeNoDues = (studentId) => api.post(`/nodues/${studentId}/initialize`);
 
 // ─── Module 5 extras ───
 export const getSystemConfig = () => api.get('/admin/system-config');
 export const updateSystemConfig = (data) => api.put('/admin/system-config', data);
 
 // ─── Profile ───
+export const updateProfile = (data) => api.put('/profile', data);
 export const updateAvatar = (file) => {
   const fd = new FormData();
   fd.append('avatar', file);
@@ -110,6 +112,7 @@ export const getAllFeedback = () => api.get('/feedback/all');
 export const manageInstructors = (offeringId, data) => api.patch(`/courses/offerings/${offeringId}/instructors`, data);
 
 // ─── Departments & Programs ───
+export const getAllStudents = () => api.get('/admin/students');
 export const getDepartments = () => api.get('/admin/departments');
 export const getPrograms = () => api.get('/admin/programs');
 export const getAdminOfferings = () => api.get('/admin/enrollments/offerings');
@@ -130,6 +133,7 @@ export const deleteAsset = (id) => api.delete(`/hostel/assets/${id}`);
 // ─── Module 6: HMC Members ───
 export const getHMCMembers = () => api.get('/admin/hmc/members');
 export const addHMCMember = (data) => api.post('/admin/hmc/members', data);
+export const updateHMCMember = (id, data) => api.put(`/admin/hmc/members/${id}`, data);
 export const removeHMCMember = (id) => api.delete(`/admin/hmc/members/${id}`);
 
 // ─── Course Feed / Posts ───
