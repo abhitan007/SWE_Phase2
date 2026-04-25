@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IIT Guwahati Academic Portal — Service to Code Mapping</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 700; color: #1a1a2e; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; margin-bottom: 4px; }
+  .subtitle { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+  .legend { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .be { background: #dbeafe; color: #1d4ed8; }
+  .fe { background: #dcfce7; color: #15803d; }
+  .mo { background: #fef3c7; color: #b45309; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #4f46e5; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:hover { background: #eef2ff; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.5; }
+  td:first-child { font-weight: 600; white-space: nowrap; color: #4f46e5; }
+  td:nth-child(2) { color: #374151; font-weight: 600; }
+  .files { display: flex; flex-direction: column; gap: 2px; }
+  .file { font-family: monospace; font-size: 10px; }
+  @media print {
+    body { padding: 10px; }
+    thead th { background: #4f46e5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    tbody tr:nth-child(even) { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<h1>Service to Code Mapping</h1>
+<div class="legend">
+  <span><span class="badge be">BE</span> Backend Controller / Route</span>
+  <span><span class="badge fe">FE</span> Frontend Page / Component</span>
+  <span><span class="badge mo">MO</span> Mongoose Model</span>
+</div>
+<table>
+<thead>
+  <tr><th>#</th><th>Service</th><th>Key Files</th></tr>
+</thead>
+<tbody>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 1 — Identity & Access Management</td></tr>
+  <tr><td>1</td><td>User Login</td><td class="files">
+  <span class="file be">BE: controllers/authController.js -> login()</span>
+  <span class="file be">BE: routes/auth.js -> POST /api/auth/login</span>
+  <span class="file be">BE: middleware/rateLimiter.js, middleware/auth.js</span>
+  <span class="file fe">FE: pages/Login.jsx</span>
+  <span class="file fe">FE: services/authService.js</span>
+  <span class="file mo">MO: models/User.js</span>
+</td></tr>
+  <tr><td>2</td><td>Password Management</td><td class="files">
+  <span class="file be">BE: controllers/authController.js -> forgotPassword(), resetPassword(), changePassword()</span>
+  <span class="file be">BE: routes/auth.js -> POST /forgot-password, /reset-password, PUT /change-password</span>
+  <span class="file fe">FE: pages/ChangePassword.jsx, pages/ResetPassword.jsx</span>
+  <span class="file mo">MO: models/User.js (resetToken, resetTokenExpiry)</span>
+</td></tr>
+  <tr><td>3</td><td>Role-Based Access Control</td><td class="files">
+  <span class="file be">BE: middleware/auth.js -> authenticate(), authorize()</span>
+  <span class="file be">BE: All routes — role guards (admin/faculty/student)</span>
+  <span class="file fe">FE: context/AuthContext.jsx</span>
+  <span class="file fe">FE: App.jsx -> ProtectedRoute, role-based rendering</span>
+  <span class="file mo">MO: models/User.js (role field)</span>
+</td></tr>
+  <tr><td>4</td><td>User Profile Management</td><td class="files">
+  <span class="file be">BE: controllers/authController.js -> updateAvatar(), getMe()</span>
+  <span class="file be">BE: controllers/profileController.js</span>
+  <span class="file be">BE: routes/auth.js -> PATCH /me/avatar, GET /me</span>
+  <span class="file be">BE: config/multerAvatarConfig.js</span>
+  <span class="file fe">FE: pages/ProfileSettings.jsx</span>
+  <span class="file mo">MO: models/User.js, models/StudentProfile.js</span>
+</td></tr>
+  <tr><td>5</td><td>Activity Logging</td><td class="files">
+  <span class="file be">BE: middleware/auditLogger.js</span>
+  <span class="file be">BE: Applied on: login, logout, password changes, announcements</span>
+  <span class="file mo">MO: models/AuditLog.js</span>
+</td></tr>
+  <tr><td>6</td><td>Session Security</td><td class="files">
+  <span class="file be">BE: controllers/authController.js -> logout()</span>
+  <span class="file be">BE: utils/jwt.js -> generateToken(), verifyToken()</span>
+  <span class="file be">BE: middleware/auth.js -> JWT Bearer validation</span>
+  <span class="file fe">FE: services/authService.js -> token storage in localStorage</span>
+</td></tr>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 2 — Student Academic Portal</td></tr>
+  <tr><td>7</td><td>Student Dashboard</td><td class="files">
+  <span class="file be">BE: controllers/studentDashboardController.js</span>
+  <span class="file be">BE: routes/studentDashboard.js -> GET /api/student/dashboard</span>
+  <span class="file fe">FE: pages/student/StudentDashboard.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js, models/Assignment.js</span>
+</td></tr>
+  <tr><td>8</td><td>Course Registration</td><td class="files">
+  <span class="file be">BE: controllers/enrollmentController.js -> enroll(), getMyEnrollments()</span>
+  <span class="file be">BE: routes/enrollment.js -> POST /api/enrollment, GET /api/enrollment</span>
+  <span class="file fe">FE: pages/student/CourseRegistration.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js, models/CourseOffering.js</span>
+</td></tr>
+  <tr><td>9</td><td>Drop Courses</td><td class="files">
+  <span class="file be">BE: controllers/enrollmentController.js -> dropCourse()</span>
+  <span class="file be">BE: routes/enrollment.js -> DELETE /api/enrollment/:id</span>
+  <span class="file fe">FE: pages/student/CourseRegistration.jsx (drop button)</span>
+  <span class="file mo">MO: models/Enrollment.js</span>
+</td></tr>
+  <tr><td>10</td><td>Academic Record Viewer</td><td class="files">
+  <span class="file be">BE: controllers/academicRecordController.js</span>
+  <span class="file be">BE: routes/academicRecord.js -> GET /api/academic-record</span>
+  <span class="file fe">FE: pages/student/AcademicHistory.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js (grade, gradePoints, status)</span>
+</td></tr>
+  <tr><td>11</td><td>Student Attendance Tracking</td><td class="files">
+  <span class="file be">BE: controllers/studentAssignmentController.js -> getMyAttendance()</span>
+  <span class="file be">BE: routes/studentAttendance.js -> GET /api/student/attendance</span>
+  <span class="file fe">FE: pages/student/StudentAttendance.jsx</span>
+  <span class="file mo">MO: models/AttendanceSession.js</span>
+</td></tr>
+  <tr><td>12</td><td>Assignment Upload (Student)</td><td class="files">
+  <span class="file be">BE: controllers/studentAssignmentController.js -> getMyAssignments(), submitAssignment()</span>
+  <span class="file be">BE: routes/studentAssignments.js</span>
+  <span class="file fe">FE: pages/student/AssignmentUpload.jsx</span>
+  <span class="file mo">MO: models/Assignment.js, models/Submission.js</span>
+</td></tr>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 3 — Course Operations & Assessment</td></tr>
+  <tr><td>17</td><td>Grade Submission</td><td class="files">
+  <span class="file be">BE: controllers/facultyCourseController.js -> submitGrades()</span>
+  <span class="file be">BE: routes/facultyCourses.js -> POST /api/faculty/courses/:id/grades</span>
+  <span class="file fe">FE: pages/faculty/GradeSubmission.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js (grade, gradePoints, isLocked)</span>
+</td></tr>
+  <tr><td>18</td><td>Attendance Marking (Faculty)</td><td class="files">
+  <span class="file be">BE: controllers/facultyCourseController.js -> markAttendance(), getAttendanceSessions()</span>
+  <span class="file be">BE: routes/facultyCourses.js -> POST/GET /api/faculty/courses/:id/attendance</span>
+  <span class="file fe">FE: pages/faculty/AttendanceTracking.jsx</span>
+  <span class="file mo">MO: models/AttendanceSession.js</span>
+</td></tr>
+  <tr><td>19</td><td>Assignment Configuration (Faculty)</td><td class="files">
+  <span class="file be">BE: controllers/facultyCourseController.js -> createAssignment(), updateAssignment(), deleteAssignment()</span>
+  <span class="file be">BE: routes/facultyCourses.js -> POST/PUT/DELETE /assignments</span>
+  <span class="file fe">FE: pages/faculty/AssignmentConfiguration.jsx</span>
+  <span class="file mo">MO: models/Assignment.js</span>
+</td></tr>
+  <tr><td>20</td><td>Submission Review (Faculty)</td><td class="files">
+  <span class="file be">BE: controllers/facultyCourseController.js -> getSubmissions(), gradeSubmission()</span>
+  <span class="file be">BE: routes/facultyCourses.js -> GET/PATCH /submissions</span>
+  <span class="file fe">FE: pages/faculty/SubmissionReview.jsx</span>
+  <span class="file mo">MO: models/Submission.js</span>
+</td></tr>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 4 — Communication & Resource Hub</td></tr>
+  <tr><td>13</td><td>General Announcement</td><td class="files">
+  <span class="file be">BE: controllers/announcementController.js</span>
+  <span class="file be">BE: routes/announcements.js -> GET/POST /api/announcements</span>
+  <span class="file fe">FE: pages/communication/ (announcements section)</span>
+  <span class="file mo">MO: models/Announcement.js</span>
+</td></tr>
+  <tr><td>15</td><td>Resource Sharing</td><td class="files">
+  <span class="file be">BE: controllers/resourceController.js</span>
+  <span class="file be">BE: routes/resources.js</span>
+  <span class="file fe">FE: pages/student/ (Resources section)</span>
+  <span class="file mo">MO: models/Resource.js</span>
+</td></tr>
+  <tr><td>16</td><td>Course Feedback Window</td><td class="files">
+  <span class="file be">BE: controllers/feedbackController.js -> getActiveWindow(), submitFeedback()</span>
+  <span class="file be">BE: routes/feedback.js -> GET /api/feedback/:offeringId/active, POST /submit</span>
+  <span class="file fe">FE: pages/student/CourseFeedback.jsx</span>
+  <span class="file mo">MO: models/FeedbackWindow.js, models/FeedbackResponse.js</span>
+</td></tr>
+  <tr><td>22</td><td>Academic Messaging</td><td class="files">
+  <span class="file be">BE: controllers/messageController.js</span>
+  <span class="file be">BE: routes/messages.js -> GET/POST /api/messages</span>
+  <span class="file fe">FE: pages/communication/ (Messages)</span>
+  <span class="file mo">MO: models/Message.js</span>
+</td></tr>
+  <tr><td>23</td><td>Resources Sharing (Admin)</td><td class="files">
+  <span class="file be">BE: controllers/resourceController.js</span>
+  <span class="file be">BE: routes/resources.js -> POST/DELETE /api/resources</span>
+  <span class="file mo">MO: models/Resource.js</span>
+</td></tr>
+  <tr><td>32</td><td>Course Feedback Evaluation</td><td class="files">
+  <span class="file be">BE: controllers/feedbackController.js -> openWindow(), closeWindow(), getResults(), getAllFeedback()</span>
+  <span class="file be">BE: routes/feedback.js -> POST /open, /close, GET /results, /admin/all</span>
+  <span class="file fe">FE: pages/admin/FeedbackManagement.jsx</span>
+  <span class="file fe">FE: pages/faculty/CourseFeedbackResults.jsx</span>
+  <span class="file mo">MO: models/FeedbackWindow.js, models/FeedbackResponse.js</span>
+</td></tr>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 5 — Curriculum & Institutional Administration</td></tr>
+  <tr><td>24</td><td>Enrollment Oversight (Admin)</td><td class="files">
+  <span class="file be">BE: controllers/enrollmentAdminController.js</span>
+  <span class="file be">BE: routes/enrollmentAdmin.js -> GET /api/admin/enrollments</span>
+  <span class="file fe">FE: pages/admin/EnrollmentDashboard.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js, models/CourseOffering.js</span>
+</td></tr>
+  <tr><td>25</td><td>Student Database Management</td><td class="files">
+  <span class="file be">BE: controllers/studentAdminController.js -> getAllStudents(), addStudent()</span>
+  <span class="file be">BE: routes/studentsAdmin.js -> GET/POST /api/admin/students</span>
+  <span class="file fe">FE: pages/admin/StudentDirectory.jsx</span>
+  <span class="file mo">MO: models/User.js, models/StudentProfile.js</span>
+</td></tr>
+  <tr><td>26</td><td>Faculty Account Administration</td><td class="files">
+  <span class="file be">BE: controllers/facultyAdminController.js -> getAllFaculty(), addFaculty()</span>
+  <span class="file be">BE: routes/facultyAdmin.js -> GET/POST /api/admin/faculty</span>
+  <span class="file fe">FE: pages/admin/FacultyDirectory.jsx</span>
+  <span class="file mo">MO: models/User.js (role: faculty)</span>
+</td></tr>
+  <tr><td>29</td><td>Program Configuration</td><td class="files">
+  <span class="file be">BE: controllers/programController.js -> getPrograms(), addProgram()</span>
+  <span class="file be">BE: routes/programs.js -> GET/POST /api/programs</span>
+  <span class="file fe">FE: pages/admin/ProgramManagement.jsx</span>
+  <span class="file mo">MO: models/Program.js</span>
+  <span class="file be">BE: seedIITG.js (seeds 40 IITG programs)</span>
+</td></tr>
+  <tr><td>30</td><td>Course Catalog Control</td><td class="files">
+  <span class="file be">BE: controllers/courseController.js -> getCourses(), createCourse(), createOffering(), manageInstructors()</span>
+  <span class="file be">BE: routes/courses.js -> GET/POST /api/courses, /api/courses/:id/offer</span>
+  <span class="file fe">FE: pages/admin/CourseCatalog.jsx</span>
+  <span class="file mo">MO: models/Course.js, models/CourseOffering.js</span>
+</td></tr>
+  <tr><td>31</td><td>Department Management</td><td class="files">
+  <span class="file be">BE: controllers/departmentController.js -> getDepartments(), addDepartment()</span>
+  <span class="file be">BE: routes/departments.js -> GET/POST /api/departments</span>
+  <span class="file fe">FE: pages/admin/DepartmentManagement.jsx</span>
+  <span class="file mo">MO: models/Department.js</span>
+  <span class="file be">BE: seedIITG.js (seeds 14 IITG departments)</span>
+</td></tr>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 6 — Hostel & Welfare (HMC) Services</td></tr>
+  <tr><td>33</td><td>Leave Application</td><td class="files">
+  <span class="file be">BE: controllers/leaveController.js -> applyLeave(), getMyLeaves()</span>
+  <span class="file be">BE: routes/leaves.js -> GET/POST /api/leaves</span>
+  <span class="file fe">FE: pages/student/LeaveApplication.jsx</span>
+  <span class="file mo">MO: models/LeaveApplication.js</span>
+</td></tr>
+  <tr><td>34</td><td>No Dues Clearance</td><td class="files">
+  <span class="file be">BE: controllers/noDuesController.js</span>
+  <span class="file be">BE: routes/noDues.js -> GET/POST /api/no-dues</span>
+  <span class="file fe">FE: pages/student/NoDues.jsx</span>
+  <span class="file mo">MO: models/NoDues.js</span>
+</td></tr>
+  <tr><td>35</td><td>Hostel Transfer Request</td><td class="files">
+  <span class="file be">BE: controllers/hostelTransferController.js</span>
+  <span class="file be">BE: routes/hostelTransfers.js -> GET/POST /api/hostel-transfers</span>
+  <span class="file mo">MO: models/HostelTransfer.js</span>
+</td></tr>
+  <tr><td>36</td><td>Complaint Filing</td><td class="files">
+  <span class="file be">BE: controllers/complaintController.js -> fileComplaint()</span>
+  <span class="file be">BE: routes/complaints.js -> POST /api/complaints</span>
+  <span class="file fe">FE: pages/student/Complaints.jsx</span>
+  <span class="file mo">MO: models/Complaint.js</span>
+</td></tr>
+  <tr><td>37</td><td>Complaint Status Tracking</td><td class="files">
+  <span class="file be">BE: controllers/complaintController.js -> getComplaints(), updateComplaint()</span>
+  <span class="file be">BE: routes/complaints.js -> GET/PATCH /api/complaints</span>
+  <span class="file fe">FE: pages/student/Complaints.jsx</span>
+  <span class="file mo">MO: models/Complaint.js</span>
+</td></tr>
+  <tr><td>38</td><td>Leave Approval Logic</td><td class="files">
+  <span class="file be">BE: controllers/leaveController.js -> approveLeave(), rejectLeave()</span>
+  <span class="file be">BE: routes/leaves.js -> PATCH /api/leaves/:id/approve</span>
+  <span class="file mo">MO: models/LeaveApplication.js (status field)</span>
+</td></tr>
+  <tr><td>39</td><td>HMC Member Management</td><td class="files">
+  <span class="file be">BE: controllers/hmcController.js</span>
+  <span class="file be">BE: routes/hmcMembers.js -> GET/POST /api/hmc-members</span>
+  <span class="file mo">MO: models/HMCMember.js</span>
+</td></tr>
+  <tr><td>40</td><td>Facility Asset Management</td><td class="files">
+  <span class="file be">BE: controllers/assetController.js</span>
+  <span class="file be">BE: routes/assets.js -> GET/POST/PATCH /api/assets</span>
+  <span class="file mo">MO: models/Asset.js</span>
+</td></tr>
+  <tr class="module-header" style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; color: #1e293b; padding-top: 16px; padding-bottom: 8px; border-bottom: 2px solid #cbd5e1;">Module 7 — Documents & Analytics</td></tr>
+  <tr><td>14</td><td>Transcript Request</td><td class="files">
+  <span class="file be">BE: controllers/transcriptRequestController.js</span>
+  <span class="file be">BE: routes/transcriptRequest.js</span>
+  <span class="file fe">FE: pages/student/DocumentRequests.jsx</span>
+  <span class="file mo">MO: models/TranscriptRequest.js</span>
+</td></tr>
+  <tr><td>21</td><td>Performance Analytics</td><td class="files">
+  <span class="file be">BE: controllers/analyticsController.js</span>
+  <span class="file be">BE: routes/analytics.js -> GET /api/analytics/*</span>
+  <span class="file fe">FE: pages/admin/AnalyticsDashboard.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js, models/AttendanceSession.js</span>
+</td></tr>
+  <tr><td>27</td><td>Automated Transcript Generation</td><td class="files">
+  <span class="file be">BE: controllers/documentsController.js -> generateTranscript()</span>
+  <span class="file be">BE: routes/documents.js -> GET /api/documents/transcript</span>
+  <span class="file fe">FE: pages/student/DocumentRequests.jsx</span>
+  <span class="file mo">MO: models/Enrollment.js, models/StudentProfile.js</span>
+</td></tr>
+  <tr><td>28</td><td>Certificate Approval Workflow</td><td class="files">
+  <span class="file be">BE: controllers/certificateController.js</span>
+  <span class="file be">BE: routes/certificates.js -> GET/POST/PATCH /api/certificates</span>
+  <span class="file fe">FE: pages/BonafideCertificate.jsx</span>
+  <span class="file mo">MO: models/CertificateRequest.js</span>
+</td></tr>
+</tbody>
+</table>
+
+<div style="margin-top:24px; padding-top:12px; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8; display:flex; justify-content:space-between;">
+  <span>IIT Guwahati Academic Affairs Portal — SWE Project</span>
+  <span>Generated: April 2026</span>
+</div>
+</body>
+</html>
